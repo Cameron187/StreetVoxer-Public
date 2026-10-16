@@ -1,0 +1,63 @@
+# StreetVoxer
+
+> StreetVoxer.net is a WebGPU browser game that renders the real world as interactive 3D voxels from satellite imagery, elevation data, and OpenStreetMap building footprints. You can walk, drive, fly, and shoot in a voxelized version of a real place. The site is scriptable end-to-end from a browser-automation agent (e.g. Claude-in-Chrome) via an in-page JavaScript API — no login, no repo access, and no server-side API required.
+
+## How an agent drives the site
+
+The full control surface is **in-page JavaScript on `window.debug`**, not an HTTP endpoint. **No browser? Three things still work:** read [`/agent-api.json`](https://www.streetvoxer.net/agent-api.json) for the documented surface in one GET, hand your user a **scenario link** (below) — a URL you can write by hand that opens the site and starts a game — or have the **MCP server** (below) write and check those links for you. With a browser you can run JS in, open the page, then:
+
+- **Discover the API:** call `window.debug.api.list()` for every function as `{name, signature, documented}` (pass a substring or RegExp to filter, e.g. `window.debug.api.list(/^waitFor/)`), and read `window.debug.api.version` for the version (don't assume it). `window.debug.agentApiList()` is the same surface as annotated strings - signature plus usage notes and caveats - for the functions that have them. Both are live and are the source of truth; prefer them over any static doc, including this one, since the surface evolves.
+- **Wait, don't poll.** The API is Promise-based. `await window.debug.waitForSpawn()` resolves when the player is controllable; `await window.debug.waitForChunksReady()` resolves when the voxel world around the player has finished building. Both reject with a structured `{reason,...}` on timeout.
+- **Read state as structured data**, not by screenshotting: `getPlayerState()`, `getCharacterState()`, `getVehicleState()`, `getSurvival()`, `getQuestState()`.
+- **Check the `reason` field on movement calls.** They resolve with `{reached, reason, ...}` rather than throwing, so a bee-line that failed looks like a success if you only await it.
+
+Common entry points (call `api.list()` for the rest):
+
+- `searchLocation(query)` / `waitForLocationSearchSpawn(query)` — geocode a place name and spawn there.
+- `spawnAt({lat, lon, ctrl, elevMeters?, pitchDeg?, bearingDeg?})` — spawn at any coordinate in a chosen control mode, in-page, no reload.
+- `setControlMode('FreeCamera' | 'Character' | 'Vehicle')` — switch modes at runtime.
+- `walkCharacter(keys, ms)`, `walkCharacterToGeo({lat,lon}, opts?)`, `driveRoute(points)` — move a character headlessly (keys are UPPERCASE, e.g. `'W'`).
+- `walkCharacterToPlace(target, opts?)` — use this, **not** `walkCharacterToGeo`, for anything inside a building: it walks to the door first. A bee-line at an indoor target walks into a wall.
+- `moveFreeCameraTo({lat, lon, elevMeters?, bearingDeg?, pitchDeg?})`, `setCameraPitch(deg)`, `lookAtGeo({lat,lon})` — scripted free-camera framing (all angles in **degrees**).
+- `spawnHelicopter()` / `enterHelicopter()` / `setHelicopterIntent(...)`, and the same trio for `Plane` — powered flight.
+- `voxelEdit(op)` / `rapidVoxelEdit(op, n)` — edit voxels below the player (Character mode).
+
+## MCP server
+
+An MCP client can call StreetVoxer as tools, no browser needed: **`https://www.streetvoxer.net/api/mcp`** (Streamable HTTP, stateless, no auth). Tools: `coverage` (does a point have map data), `make_spawn_link` (a URL that opens a place), `make_scenario_link` (a URL that opens a place and starts a quest, checked by the game's own validator) and `read_scenario_link` (what a link does and whether the game accepts it). Every tool returns a link or an answer; nothing runs on the server, and a refused link comes back with the game's reason. Input schemas come from the server's `tools/list`; `/agent-api.json` lists the tools under `mcp`.
+
+## URL / spawn contract
+
+A spawn is fully described by the query string, which the page rewrites live every frame — so **any spawn URL is a shareable, replayable artifact** you can hand back to a user:
+
+`https://www.streetvoxer.net/?lat=<deg>&lon=<deg>&bear=<deg>&ctrl=<0|1|2>&elev=<meters>&pitch=<deg>`
+
+- `lat`, `lon` — WGS84 degrees. `bear` — camera bearing, degrees. `elev` — elevation, meters.
+- `ctrl` — control mode: `0` FreeCamera, `1` Character, `2` Vehicle. **Only 0–2 are accepted on read.** The page can *emit* `ctrl=3`/`4` (helicopter / locked camera), so a copied URL may carry a mode that is silently ignored when reloaded — set those with `setControlMode` / `enterHelicopter` after load instead.
+- `pitch` — camera pitch, degrees (0 level, −90 straight down); only lands on a FreeCamera (`ctrl=0`) spawn.
+- `vehicle` — pick the vehicle spec before spawn: `humvee`, `motorcycle`, `boat`, `turret`. Unknown ids are ignored.
+- `?clear-indexeddb` — drops the local cache before load (for a clean cold start).
+
+## Scenario links — a game in a URL, no browser needed
+
+Append a quest to any spawn URL, in the **fragment** (never sent to a server):
+
+`https://www.streetvoxer.net/?lat=<deg>&lon=<deg>&bear=<deg>&ctrl=1#scenario=<encodeURIComponent(JSON.stringify({v:1, quest:<spec>, preload?:{radiusMeters}}))>`
+
+`<spec>` is a `defineQuest` spec: `{id, name, reward?:{cents}, steps:[{verb, selector, at?, text?, ...}]}`. Useful verbs: `reached` / `drivenTo` (with selector `atGeo` and `at:{lat, lon, radiusMeters, name}`), `taken` (selector `spawnedVehicle`, `spawnParked:{specId:'humvee'}` parks a car beside the player), `edited` (selector `anyEdit`), `moved`, `firstPerson`. `{target}` in `text` is replaced with the target's name. When the user opens the link, the game spawns them at the pose and starts the quest; a malformed spec is refused **on screen with the reason**, and unknown fields are refused rather than ignored. Rules: `scope` must be `"once"` (the default); `reward.cents` at most 10000; keep the whole URL under ~2000 characters. Optional `preload:{radiusMeters, lat?, lon?}` (radius at most 1500 m, centre within 5 km of the spawn, default the spawn) generates and saves that area after spawn and before the quest starts, so the quest plays without load stalls; it takes a few minutes per km and the player can cancel it. `#scenario=b64.<base64url JSON>` is accepted too. The full format and a ready example are in `/agent-api.json` under `scenarioLinks`; with a browser, `window.debug.makeScenarioLink(spec)` builds and validates one.
+
+## What to expect at a given place (read before "make a game at <place>")
+
+The three data layers have **different coverage**, so "is it covered?" has three answers:
+
+- **3D buildings — global.** OpenStreetMap-derived, eight archives, vintage **2026-09**. ⚠️ **Mainland China, Hong Kong and Macau are deliberately excluded** for compliance reasons (China's Surveying and Mapping Law mandates a coordinate offset this pipeline does not apply). Taiwan **is** covered. The exclusion boundary is coarse, so narrow strips of Mongolia, Russia, India and Vietnam within ~tens of km of the Chinese border are also missing. Everywhere else, including Antarctica, has buildings.
+- **Ground imagery — high resolution in the US only.** Roughly 1 m/pixel across the United States. Elsewhere it is upscaled from a much coarser zoom (order 600 m per source pixel), so **non-US ground texture is heavily blurred** even though the buildings and terrain are correct. Set expectations accordingly: outside the US it looks like a correct city with soft ground, not a photo-real one.
+- **Terrain elevation — global, quality varies.** ~30 m worldwide. Where a national elevation dataset was available the surface is clean; elsewhere it derives from older radar data and can show smooth mounds tens of metres high that are not real hills, particularly in dense cities.
+
+Within building coverage, density is whatever OSM has: cities are dense, rural areas sparse — so "covered" means buildings exist, not that the view is urban. Requires a WebGPU-capable browser and a foreground (non-minimized) tab.
+
+## Links
+
+- [StreetVoxer.net](https://www.streetvoxer.net/): the live site — load it, then use `window.debug` as above.
+- [Charleston, SC (dense 3D city, best-case imagery, Character mode)](https://www.streetvoxer.net/?lat=32.776&lon=-79.931&ctrl=1): example US spawn — buildings, terrain and ~1 m imagery all at their best.
+- [London (dense 3D city outside the US)](https://www.streetvoxer.net/?lat=51.5074&lon=-0.1278&ctrl=1): example non-US spawn — full buildings and clean terrain, blurred ground imagery.

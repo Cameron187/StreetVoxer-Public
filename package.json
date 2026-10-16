@@ -1,0 +1,17 @@
+{
+  "name": "streetvoxer-public",
+  "private": true,
+  "description": "StreetVoxer agent kit: the agent API manifest, the scenario-link codec and the MCP server.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "mcp": "node mcp/stdio.mjs",
+    "scenario-link": "node tools/scenario-link.mjs"
+  },
+  "streetvoxer": {
+    "agentApiVersion": 48
+  }
+}

@@ -1,0 +1,1519 @@
+{
+  "name": "StreetVoxer agent API",
+  "description": "The documented window.debug surface of https://www.streetvoxer.net/. Load the page in a WebGPU browser and call these from page JavaScript; window.debug.api.list() is the live, complete list. Agents with NO browser can still hand a user a game: see scenarioLinks, or call the MCP server (see mcp).",
+  "agentApiVersion": 48,
+  "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
+  "docs": {
+    "llms": "https://www.streetvoxer.net/llms.txt",
+    "urlParameters": "https://www.streetvoxer.net/?lat=<deg>&lon=<deg>&bear=<deg>&ctrl=<0 free camera | 1 character | 2 vehicle>&elev=<m>&pitch=<deg>"
+  },
+  "mcp": {
+    "endpoint": "https://www.streetvoxer.net/api/mcp",
+    "transport": "Streamable HTTP, stateless: POST one JSON-RPC 2.0 message per request. No auth.",
+    "protocolVersions": [
+      "2025-06-18",
+      "2025-03-26",
+      "2024-11-05"
+    ],
+    "local": "node mcp/stdio.mjs from the source repository (stdio transport, same tools).",
+    "tools": [
+      {
+        "name": "coverage",
+        "description": "Whether StreetVoxer has OpenStreetMap data (buildings, roads, water, trees) at a coordinate, and from which regional archive. Terrain is worldwide either way. Call this before sending a user somewhere unfamiliar: an uncovered point opens as bare terrain."
+      },
+      {
+        "name": "make_spawn_link",
+        "description": "A URL that opens StreetVoxer at a coordinate, on foot by default. Give it to the user to open in a desktop browser with WebGPU (current Chrome or Edge)."
+      },
+      {
+        "name": "make_scenario_link",
+        "description": "A URL that opens StreetVoxer at a coordinate and starts a quest there once the world has loaded. The quest is checked by the same validator the game runs, so a link this returns is one the game accepts; a refusal says what to change. Optional preload warms the area first (it moves the camera for a few minutes)."
+      },
+      {
+        "name": "read_scenario_link",
+        "description": "Decode a StreetVoxer URL: where it opens, the quest and preload it carries, and whether the game would accept them. Use it to check a link someone else wrote."
+      }
+    ]
+  },
+  "scenarioLinks": {
+    "version": 1,
+    "format": "<spawn URL>#scenario=<encodeURIComponent(JSON.stringify({v:1, quest:<defineQuest spec>, preload?:{radiusMeters, lat?, lon?}}))>  or  #scenario=b64.<base64url of the same JSON>",
+    "rules": [
+      "The quest is a defineQuest spec (see the defineQuest entry below) and is validated by the same checks when the link is opened; a refusal is shown to the player with its reason.",
+      "scope must be \"once\" (nobody hands a linked quest over).",
+      "reward.cents at most 10000.",
+      "It starts after the player spawns at the link's pose; the fragment never reaches the server.",
+      "Keep links under ~2000 characters; chat apps truncate long URLs.",
+      "Optional preload: generates and saves the area (radiusMeters at most 1500, centre lat/lon within 5 km of the spawn, default the spawn) after spawn and BEFORE the quest starts, so the quest plays over a warm region. It takes the camera for minutes (about 2-5 per km box) and the player can cancel it. With preload, quest may be omitted."
+    ],
+    "example": "https://www.streetvoxer.net/?lat=40.7980968&lon=-113.8517746&bear=262.1&ctrl=1#scenario=%7B%22v%22%3A1%2C%22quest%22%3A%7B%22id%22%3A%22walk-west%22%2C%22name%22%3A%22Walk%20West%22%2C%22steps%22%3A%5B%7B%22verb%22%3A%22reached%22%2C%22selector%22%3A%22atGeo%22%2C%22at%22%3A%7B%22lat%22%3A40.7980968%2C%22lon%22%3A-113.8529%2C%22radiusMeters%22%3A5%2C%22name%22%3A%22the%20stake%22%7D%2C%22text%22%3A%22Walk%20to%20%7Btarget%7D%22%7D%5D%7D%7D"
+  },
+  "functions": [
+    {
+      "names": [],
+      "doc": "CONVENTIONS: angles in this API are compass angles in degrees, clockwise, north = 0 (bearingDeg, yawOffsetDeg; positive yaw turns the character right). Distances are metres, speeds m/s, money is cents, health/hunger/hydration are 0..1 fractions. Screen points are normalized canvas coordinates 0..1 with 0,0 at top-left."
+    },
+    {
+      "names": [
+        "searchLocation"
+      ],
+      "doc": "searchLocation(query) -> Promise<{title, lat, lon}> — geocode a place name (Wikipedia geosearch) and fly there."
+    },
+    {
+      "names": [
+        "waitForSpawn"
+      ],
+      "doc": "waitForSpawn(timeoutMs?) -> Promise<{ready, durationMs, sinceLoadMs}> — resolves when the player is controllable, before the camera settles. Compare timings across runs on sinceLoadMs; durationMs counts from the call."
+    },
+    {
+      "names": [
+        "waitForSpawnSettled"
+      ],
+      "doc": "waitForSpawnSettled(timeoutMs?) -> Promise<{ready, durationMs, sinceLoadMs, settledSinceLoadMs, settledMs, mode, cameraElevMeters, cameraPitchDeg, workerErrors}> — resolves after the spawn camera has settled."
+    },
+    {
+      "names": [
+        "spawnAt"
+      ],
+      "doc": "spawnAt({lat, lon, ctrl?, elevMeters?|elev?, pitchDeg?|pitch?, bearingDeg?|bear?}, timeoutMs?) -> Promise<settled> — spawn anywhere without a reload; ctrl 0 free camera, 1 character, 2 vehicle. Pass a bearing for repeatable runs; omitting it keeps the approach heading."
+    },
+    {
+      "names": [
+        "waitForLocationSearchSpawn"
+      ],
+      "doc": "waitForLocationSearchSpawn(query, timeoutMs?) -> Promise<{search, spawn, totalMs}> — searchLocation plus waitForSpawn in one call."
+    },
+    {
+      "names": [
+        "waitForChunksReady"
+      ],
+      "doc": "waitForChunksReady(timeoutMs?) -> Promise<{ready, totalChunks, marginExcluded, firstReadyMs, alreadyReadyAtCall, durationMs, sinceLoadMs}> — resolves when the voxel world around the player is built. Use firstReadyMs for load time; alreadyReadyAtCall:true means this call measured nothing."
+    },
+    {
+      "names": [
+        "getChunksFirstReadyMs"
+      ],
+      "doc": "getChunksFirstReadyMs() -> number|null — when the voxel grid first became ready (ms since load), or null."
+    },
+    {
+      "names": [
+        "resetChunksReadyMark"
+      ],
+      "doc": "resetChunksReadyMark() -> \"ok\" — re-arm the first-ready mark before measuring a second load in the same page."
+    },
+    {
+      "names": [
+        "saveAllLoadedChunks"
+      ],
+      "doc": "saveAllLoadedChunks() -> Promise<{dispatched, skipped, elapsedMs}> — persist the loaded world to the local cache."
+    },
+    {
+      "names": [
+        "preloadRegion"
+      ],
+      "doc": "preloadRegion({lat?, lon?, radiusMeters?=500} | {south, west, north, east}, {settleTimeoutMs?, maxTargets?, frameBudgetMs?=40, renderEveryN?=4}?) -> {ok, box, code?} — generate and save every chunk of a region wider than the loaded area, so later visits load from cache. Takes the camera and locks player input until done; camera moves are refused meanwhile. Runs worldgen-first (larger frame budget, frame drawn every renderEveryN), restored after. Holds a screen wake lock while running. Refused while spawning (code spawning) or piloting an aircraft (code aircraft). Poll getPreloadState() -> {active, stop, stops, targets, written, fromCache, noSurface, pending, wakeLock, result:{ok, summary, verify}}; cancelPreload() stops early."
+    },
+    {
+      "names": [
+        "setWakeLock"
+      ],
+      "doc": "setWakeLock(on=true) -> Promise<{status, holders, supported}> — keep the screen awake for an unattended run (setWakeLock(false) releases). status: held, released (page was hidden; re-requested when visible), unsupported, refused: <reason>, or off. Does not keep a hidden tab running."
+    },
+    {
+      "names": [
+        "getWakeLockState"
+      ],
+      "doc": "getWakeLockState() -> {status, holders, supported} — the screen wake lock and who holds it (agent, preload)."
+    },
+    {
+      "names": [
+        "setKeyDown"
+      ],
+      "doc": "setKeyDown(key, isDown) — hold or release a key. Keys are UPPERCASE single characters or space."
+    },
+    {
+      "names": [
+        "setKeyUp"
+      ],
+      "doc": "setKeyUp(key) — release one held key."
+    },
+    {
+      "names": [
+        "clearAgentInputs"
+      ],
+      "doc": "clearAgentInputs() — release all held keys."
+    },
+    {
+      "names": [
+        "walkCharacter"
+      ],
+      "doc": "walkCharacter(keys, ms?, opts?) -> Promise<{movedMeters, swimEntered, everPaused, workerErrorsDelta, startPos, endPos}> — hold keys for ms (WASD, space = jump, C = crouch). Character mode."
+    },
+    {
+      "names": [
+        "setCharacterSteerTargetGeo",
+        "clearCharacterSteer"
+      ],
+      "doc": "setCharacterSteerTargetGeo(lat, lon, elevMeters?) / clearCharacterSteer() — keep the character's body turned toward a point; lat=null clears."
+    },
+    {
+      "names": [
+        "walkCharacterToGeo"
+      ],
+      "doc": "walkCharacterToGeo({lat, lon, elevMeters?}, opts?) -> Promise<{reached, reason, distMeters, closestMeters, startDistMeters, elapsedMs}> — walk straight to a point (opts.arriveMeters, timeoutMs, stallMs). Always check reason: arrived | stalled | timeout | bad-target | no-character | not-on-foot. No obstacle avoidance; for a target inside a building use walkCharacterToPlace."
+    },
+    {
+      "names": [
+        "driveRoute"
+      ],
+      "doc": "driveRoute(points, opts?) -> Promise<{legs, reachedAll, travelledMeters, residualMeters, elapsedMs}> — walk the character through ordered {lat, lon} waypoints."
+    },
+    {
+      "names": [
+        "setVehicleIntent"
+      ],
+      "doc": "setVehicleIntent({forward|throttle, steer, handBrake}) — on/off vehicle controls, like W/A/S/D. Use setVehicleIntentAnalog for smooth control."
+    },
+    {
+      "names": [
+        "spawnHelicopter",
+        "enterHelicopter",
+        "despawnHelicopter"
+      ],
+      "doc": "spawnHelicopter() / enterHelicopter() / despawnHelicopter() — create, board or remove the helicopter. Helicopter mode needs one to exist first."
+    },
+    {
+      "names": [
+        "setHelicopterIntent"
+      ],
+      "doc": "setHelicopterIntent({collective, cyclicPitch, cyclicRoll, pedal, autoHover} | null) -> intent — raw helicopter controls, overriding the player; null hands back control. collective 0 = hover, cyclicPitch +1 = nose down, cyclicRoll +1 = right, pedal +1 = yaw right. Prefer setHelicopterAttitude for scripted flight."
+    },
+    {
+      "names": [
+        "getHelicopterState"
+      ],
+      "doc": "getHelicopterState() -> {exists, paused, inMode, positionWorld, directionWorld, mastUpWorld, rotationQuat, speedMps, altitudeAglMeters, groundClearanceMeters, collective, commanded:{...}, autoHover, agentControlled, liftTrimFraction} — helicopter state. Use groundClearanceMeters for ground contact; altitudeAglMeters is height above terrain, not above a rooftop."
+    },
+    {
+      "names": [
+        "hoverHelicopter"
+      ],
+      "doc": "hoverHelicopter({timeoutMs?, speedMps?, holdMs?}) -> Promise<{settled, speedMps, altitudeAglMeters, elapsedMs, reason}> — centre the controls, enable auto-hover and wait until stationary. Stopping from speed takes several seconds."
+    },
+    {
+      "names": [
+        "getHelicopterSpec"
+      ],
+      "doc": "getHelicopterSpec() -> spec — the helicopter's parameters."
+    },
+    {
+      "names": [
+        "getHelicopterAttitude"
+      ],
+      "doc": "getHelicopterAttitude() -> {pitchDeg, rollDeg, headingDeg, levelnessDeg, upset, bodyVelocityMps{forward,right,up}, verticalSpeedMps, groundSpeedMps, speedMps, workerSpeedMps, courseDeg, altitudeAglMeters, groundClearanceMeters, assistRunning} — attitude and motion relative to local level. Negative bodyVelocityMps.forward is rearward flight."
+    },
+    {
+      "names": [
+        "setHelicopterAttitude"
+      ],
+      "doc": "setHelicopterAttitude({pitchDeg?, rollDeg?, headingDeg?, altitudeMeters?, verticalSpeedMps?, timeoutMs?}) -> {ok, target} — fly to and hold an attitude. Omitted axes are held at zero."
+    },
+    {
+      "names": [
+        "flyHelicopterVelocity"
+      ],
+      "doc": "flyHelicopterVelocity({forwardMps?, rightMps?, altitudeMeters?, headingDeg?, maxAttitudeDeg?, timeoutMs?}) -> {ok, target} — fly at a velocity relative to the nose; negative forwardMps flies backwards."
+    },
+    {
+      "names": [
+        "awaitHelicopterSettled"
+      ],
+      "doc": "awaitHelicopterSettled({speedTolMps?, attitudeTolDeg?, altitudeTolMeters?, holdMs?, timeoutMs?}) -> Promise<{settled, reason, live, elapsedMs}> — wait until the last command holds for holdMs. Resolves on timeout."
+    },
+    {
+      "names": [
+        "stopHelicopterAssist"
+      ],
+      "doc": "stopHelicopterAssist({release=true}?) -> {stopped, reason, at} — stop the flight assist and hand the controls back."
+    },
+    {
+      "names": [
+        "exitHelicopter"
+      ],
+      "doc": "exitHelicopter() -> {ok, atAltitudeAglMeters, expectRagdoll, craftAtExit} — get out. In the air this is a bail-out and the character falls."
+    },
+    {
+      "names": [
+        "spawnPlane",
+        "enterPlane",
+        "despawnPlane"
+      ],
+      "doc": "spawnPlane({ground?, altitudeAboveCameraMeters?, speedMps?}) / enterPlane() / despawnPlane() — create, board or remove the plane. By default it starts in the air at flying speed; {ground:true} starts it on its wheels."
+    },
+    {
+      "names": [
+        "setPlaneIntent"
+      ],
+      "doc": "setPlaneIntent({elevator, aileron, rudder, throttle, cruiseAssist, wheelBrake} | null) -> intent — raw plane controls, overriding the player; null hands back control. elevator +1 = nose down. Prefer setPlaneAttitude for scripted flight."
+    },
+    {
+      "names": [
+        "getPlaneState"
+      ],
+      "doc": "getPlaneState() -> {exists, paused, inMode, airspeedMps, alphaDeg, stallFraction, stalled, throttle, cruiseAssist, wheelsOnGround, onGround, rolling, stallSpeedMps, cruiseSpeedMps, ...} — plane state. Detect liftoff with onGround, not height."
+    },
+    {
+      "names": [
+        "getPlaneAttitude"
+      ],
+      "doc": "getPlaneAttitude() -> {pitchDeg, rollDeg, headingDeg, flightPathDeg, courseDeg, sideslipDeg, noseVsTravelDeg, bodyVelocityMps, verticalSpeedMps, speedMps, airspeedMps, alphaDeg, stalled, wheelsOnGround, altitudeAglMeters} — attitude and motion. pitchDeg is where the nose points, flightPathDeg where the plane is going."
+    },
+    {
+      "names": [
+        "setPlaneAttitude"
+      ],
+      "doc": "setPlaneAttitude({pitchDeg?, rollDeg?, headingDeg?, altitudeMeters?, verticalSpeedMps?, airspeedMps?, throttle?, rudder?, timeoutMs?}) -> {ok, target} — fly to and hold an attitude, heading, altitude or airspeed. Set throttle to fix engine power instead of holding airspeed."
+    },
+    {
+      "names": [
+        "awaitPlaneSettled"
+      ],
+      "doc": "awaitPlaneSettled({attitudeTolDeg?, altitudeTolMeters?, speedTolMps?, holdMs?, timeoutMs?}) -> Promise<{settled, reason, live, elapsedMs}> — wait until the last command holds for holdMs. Resolves on timeout."
+    },
+    {
+      "names": [
+        "stopPlaneAssist"
+      ],
+      "doc": "stopPlaneAssist({release=true}?) -> {stopped, reason, at} — stop the flight assist and hand the controls back."
+    },
+    {
+      "names": [
+        "exitPlane"
+      ],
+      "doc": "exitPlane() -> {ok, atAltitudeAglMeters, expectRagdoll, craftAtExit} — get out. In flight this is a bail-out."
+    },
+    {
+      "names": [
+        "setControlMode"
+      ],
+      "doc": "setControlMode(modeName) — FreeCamera | Character | Vehicle | LockCamera. For helicopter or plane, spawn then enter it."
+    },
+    {
+      "names": [
+        "enterCharacterFromFreeCamera"
+      ],
+      "doc": "enterCharacterFromFreeCamera() -> bool — switch from free camera to the character, landing on the ground below. Follow with waitForSpawn()."
+    },
+    {
+      "names": [
+        "waitForVehicleSpawn"
+      ],
+      "doc": "waitForVehicleSpawn(timeoutMs?) -> Promise<{ready, durationMs}> — resolves when the vehicle is drivable."
+    },
+    {
+      "names": [
+        "getVehicleState"
+      ],
+      "doc": "getVehicleState() -> {exists, paused, positionWorld, directionWorld, lastTransformAgeMs}"
+    },
+    {
+      "names": [
+        "getCharacterState"
+      ],
+      "doc": "getCharacterState() -> {exists, paused, positionWorld, lastTransformAgeMs} — also lat, lon, elevationMeters, groundElevationMeters, aglMeters, swimming, flying."
+    },
+    {
+      "names": [
+        "getPlayerState"
+      ],
+      "doc": "getPlayerState() -> {controlMode, characterExists, vehicleExists, helicopterExists, planeExists, characterPaused, vehiclePaused, helicopterPaused, planePaused, ragdollActive, isSprinting, spawnUnpausePending, spawnHandoffActive}"
+    },
+    {
+      "names": [
+        "getWorldgenStats"
+      ],
+      "doc": "getWorldgenStats() -> {chunkMap:{total,byStep}, tilesByZoom:{<z>:{total,inLOD,byElevStep}}, buffers:{<id>:fraction}, workerBacklog:{<rpcType>:count}, tilePools:{...}} — world-generation progress counters."
+    },
+    {
+      "names": [
+        "getWorldgenReport"
+      ],
+      "doc": "getWorldgenReport() -> string — a text report of world-generation timing."
+    },
+    {
+      "names": [
+        "getWorldgenWaitPolicy",
+        "setWorldgenWaitPolicy"
+      ],
+      "doc": "getWorldgenWaitPolicy() / setWorldgenWaitPolicy({enabled?, maxInflight?, l2Batch?, l2TargetMs?}) -> policy — world-generation throughput while loading."
+    },
+    {
+      "names": [
+        "listProjectionPhotos",
+        "loadProjectionPhoto",
+        "setProjector",
+        "getProjector",
+        "projectionBuildingOutline",
+        "projectGeoToPhoto",
+        "solveProjector",
+        "setProjectorOverlay"
+      ],
+      "doc": "listProjectionPhotos({osmId}) / loadProjectionPhoto({index}|{url}) / setProjector({lat,lon,elevMeters,bearingDeg,pitchDeg,rollDeg?,fovDeg?|focal35mm?,frontFacingOnly?,buildingOnly?:true|osmId|false}|{fromCamera}) / getProjector() / projectionBuildingOutline({osmId, heightMeters?, roofOutsetMeters?}) / projectGeoToPhoto(points) / solveProjector(pairs[{u,v,lat,lon,elevMeters}], {fit:[horizontal|position|orientation|fov], apply}) / setProjectorOverlay(on) -> photo projection onto a building. Judge alignment from projectionBuildingOutline, not from the projector's own viewpoint."
+    },
+    {
+      "names": [
+        "getWorldgenDwellStats"
+      ],
+      "doc": "getWorldgenDwellStats() -> object; resetWorldgenDwellStats() -> \"ok\" — the data behind getWorldgenReport, and starting a new measurement window."
+    },
+    {
+      "names": [
+        "getWorldgenPressure"
+      ],
+      "doc": "getWorldgenPressure() -> {underPressure, signals:{...}} — whether world generation is currently loaded."
+    },
+    {
+      "names": [
+        "getOpportunisticSkeletonStats"
+      ],
+      "doc": "getOpportunisticSkeletonStats() -> {queueDepth,cap,enqueued,drained,invalidated,evicted,dropped,drainErrors,txnInFlight} — background cache-save queue."
+    },
+    {
+      "names": [
+        "getTileEvictionStats"
+      ],
+      "doc": "getTileEvictionStats() -> {...} — tile unload counters."
+    },
+    {
+      "names": [
+        "getDeferredTileWriteStats"
+      ],
+      "doc": "getDeferredTileWriteStats() -> {queueDepth,drained,flushedOnUnload,forceFlushed,drainErrors,txnInFlight} — deferred tile cache writes."
+    },
+    {
+      "names": [
+        "getOpportunisticLoadedSkeletonStats"
+      ],
+      "doc": "getOpportunisticLoadedSkeletonStats() -> {enqueued,enabled}"
+    },
+    {
+      "names": [
+        "getMemoryStats"
+      ],
+      "doc": "getMemoryStats() -> {mainHeap:{usedMB,totalMB,limitMB}, cpuBufferMirrorsMB, gpu:{buffersMB,texturesMB,totalMB}, workerWasm:{lastMB,peakMB}, sharedInnerShapeCacheMB, chunkUnload} — memory use."
+    },
+    {
+      "names": [
+        "getChunkUnloadStats"
+      ],
+      "doc": "getChunkUnloadStats() -> {finalizedTotal, releasedTotalMB, windowMs, windowChunks, windowReleasedMB, chunksPerSec, releasedMBPerSec} — recent chunk unload rate."
+    },
+    {
+      "names": [
+        "getTransientEffectStats"
+      ],
+      "doc": "getTransientEffectStats() -> {live, pending, head, tail, capacity, spawned, completed, retired, droppedFull, rejectedNonFinite, shifts, peakLive, clockSeconds} — short-lived visual effects pool."
+    },
+    {
+      "names": [
+        "getEditMarkerStats"
+      ],
+      "doc": "getEditMarkerStats() -> {enabled, pending, spawned, settled, timedOut, noRebuild, recent:[{outcome, chunks, nodeEdits, estimateMs, actualMs}]} — pending-edit markers; actualMs is the delay from edit to rebuilt geometry."
+    },
+    {
+      "names": [
+        "spawnTransientEffect"
+      ],
+      "doc": "spawnTransientEffect({lat,lon,elevMeters} | {aboveCharacterMeters}, {sizeMeters, rgb, alpha, durationSeconds, pending, style:fade|pendingEdit|muzzleFlash|impact|explosion|dust|tireSmoke, orientation:billboard|ground|cube}) -> {ok, handle} — show a short-lived effect."
+    },
+    {
+      "names": [
+        "completeTransientEffect"
+      ],
+      "doc": "completeTransientEffect(handle, seconds?) -> bool — end a pending effect."
+    },
+    {
+      "names": [
+        "getEffectEmitterStats"
+      ],
+      "doc": "getEffectEmitterStats() -> {tireSmokeFrames, landingBursts, explosionBursts, lastTireSlip[], tireSmokeSurface} — tyre smoke, landing and explosion dust."
+    },
+    {
+      "names": [
+        "unstuckCharacter"
+      ],
+      "doc": "unstuckCharacter() -> Promise<{ok, reason, rung, groundMeters, demMeters, feetMeters, liftMeters, pressFeetMeters, parkedMeters?, parkWaitMs?, attempts[]}> — the Unstuck button: put the character back on the ground."
+    },
+    {
+      "names": [
+        "startTransientEmitter"
+      ],
+      "doc": "startTransientEmitter({aboveCharacterMeters}, {ratePerSecond, lifetimeSeconds, spreadMeters, sizeMeters, rgb, alpha, durationSeconds, style:dust|tireSmoke|fade}) -> {ok} — emit effects for a while."
+    },
+    {
+      "names": [
+        "getBufferPoolStats"
+      ],
+      "doc": "getBufferPoolStats() -> {perBuffer:[...], osmRegion:{...}, worstFrac, smallestLargestGapMB, largestPlaceableMB} — GPU buffer usage."
+    },
+    {
+      "names": [
+        "voxelAt"
+      ],
+      "doc": "voxelAt({lat, lon, elevMeters}) -> {ok, chunk, l1, l2, node, editable, refusal?, solid, l0Material, hasBrick, l1Material, l1Flags, dedupSlot, subVoxelSolid, surface} — read the voxel at a point; solid is the 0.1 m cell there."
+    },
+    {
+      "names": [
+        "voxelSurfaceAt"
+      ],
+      "doc": "voxelSurfaceAt({lat, lon}, opts?) -> {ok, elevMeters, voxel} — the top solid surface at a location (opts.fromElevMeters, depthMeters)."
+    },
+    {
+      "names": [
+        "editVoxels"
+      ],
+      "doc": "editVoxels({op, shape, resolutionMeters?, material?}, opts?) -> Promise<{ok, op, resolutionMeters, shape, cellsPlanned, cellsChanged, cellsUnchanged, chunksTouched, rejected:[{reason, cells}], before?, after?, stages:{...}}> — edit by coordinate, in any mode. op carve | fill | paint; resolutionMeters 0.1 | 1 | 10 (default 1); material paint | wall | roof | terrain. shape {cell:{center}} | {sphere:{center, radiusMeters}} | {capsule:{from, to, radiusMeters}} | {box:{center, sizeMeters:[x,y,z], frame:local|grid, yawDeg?}}; points are {lat, lon, elevMeters}. Edits only within about 200 m of the player. Resolves once the edit is solid; opts.persist:true also saves it. A change credits a quest Build step."
+    },
+    {
+      "names": [
+        "getEditBatchStats"
+      ],
+      "doc": "getEditBatchStats() -> {...} — edit batching counters."
+    },
+    {
+      "names": [
+        "getSurfaceIndexStats"
+      ],
+      "doc": "getSurfaceIndexStats() -> {lookups, builds, entriesIndexed, appendsIndexed, verifyMisses} — voxel edit lookup index; verifyMisses should stay 0."
+    },
+    {
+      "names": [
+        "getSurfaceListLossStats"
+      ],
+      "doc": "getSurfaceListLossStats() -> {..., anyLoss} — whether any voxel geometry was dropped for capacity this session."
+    },
+    {
+      "names": [
+        "getFeatureBudgetStats"
+      ],
+      "doc": "getFeatureBudgetStats() -> {capFeatures, tilesHit, residentTilesHit, skippedTotal, tiles:[{tileKey, firstClass, emitted, skipped, skippedTotal}]} — z15 tiles whose OSM features exceeded the per-tile cap this session, and what was cut. skipped counts are upper bounds."
+    },
+    {
+      "names": [
+        "resetFeatureBudgetStats"
+      ],
+      "doc": "resetFeatureBudgetStats() -> true — clear the session record."
+    },
+    {
+      "names": [
+        "getChunkOverlapCapStats"
+      ],
+      "doc": "getChunkOverlapCapStats() -> {cap, chunksSaturated, droppedTotal, worstLoadedWanted, chunks:[{chunkKey, wanted, kept, dropped}]} — chunks whose OSM feature list exceeded the per-chunk cap this session, and how many features each dropped."
+    },
+    {
+      "names": [
+        "resetChunkOverlapCapStats"
+      ],
+      "doc": "resetChunkOverlapCapStats() -> true — clear the session record."
+    },
+    {
+      "names": [
+        "measureShaderCompileMs"
+      ],
+      "doc": "measureShaderCompileMs(entryPoints?, runs=2) -> Promise<{entryPoint: number[]}> — cold compile time per worldgen compute pipeline, in ms; a unique source comment defeats the GPU program cache."
+    },
+    {
+      "names": [
+        "spawnNPC"
+      ],
+      "doc": "spawnNPC({distanceMeters?,type?,count?,spreadMeters?}) -> {ok, ids, reason?} — stand NPCs in front of the player. Character mode."
+    },
+    {
+      "names": [
+        "spawnNPCAt"
+      ],
+      "doc": "spawnNPCAt(positionWorld, up, direction, type?) -> {ok, id, reason?} — place an NPC at a world position. Prefer spawnNPCAtGeo."
+    },
+    {
+      "names": [
+        "spawnNPCAtGeo"
+      ],
+      "doc": "spawnNPCAtGeo(lat, lon, {type?, tag?, name?, bearingDeg?, hostile?}) -> {ok, id, tag, hostile, talkable, elevMeters} — place an NPC at a location. A tag makes it talkable; hostile:true makes it an enemy that can be defeated. For a shopkeeper or quest giver use plantAnchor."
+    },
+    {
+      "names": [
+        "despawnNPC",
+        "despawnAllNPCs"
+      ],
+      "doc": "despawnNPC(id) / despawnAllNPCs() -> {ok, despawned?}"
+    },
+    {
+      "names": [
+        "getNPCStats"
+      ],
+      "doc": "getNPCStats() -> {total, exists, pending, paused, slotsPerNPC, innerBodyContactsRejected, list:[{id,type,npcClass,dead,tag,exists,paused,health,groundState,position,speedH,speedV,sinkMeters,distanceToPlayerMeters}]} — all NPCs. health is a 0..1 fraction and only changes on hostiles."
+    },
+    {
+      "names": [
+        "spawnHostileNPC"
+      ],
+      "doc": "spawnHostileNPC({count?,distanceMeters?,spreadMeters?,type?}) -> {ok, ids} — spawn enemies in front of the player."
+    },
+    {
+      "names": [
+        "killNPC"
+      ],
+      "doc": "killNPC(id) -> {ok, id, reason?} — defeat a hostile NPC. Refuses named (friendly) NPCs."
+    },
+    {
+      "names": [
+        "fireGun"
+      ],
+      "doc": "fireGun() -> {ok, queued} — fire the held gun along the current aim. Aim first (setAimScreenUV); confirm a hit with getLastGunHit().count after about 200 ms."
+    },
+    {
+      "names": [
+        "meleeStrike"
+      ],
+      "doc": "meleeStrike() -> {ok, queued} — punch. Reach is 1.6 m and there is a 400 ms cooldown; each hit takes 0.2 of a hostile's health. Confirm with getLastGunHit().count."
+    },
+    {
+      "names": [
+        "damageNPC"
+      ],
+      "doc": "damageNPC(id, amount) -> {ok, id, health, killed, reason?} — take a 0..1 fraction of health off a hostile NPC."
+    },
+    {
+      "names": [
+        "getLastGunHit"
+      ],
+      "doc": "getLastGunHit() -> {count, npcId, atMs, sinceMs, pointWorld, npcClass, npcTag, npcDead} | null — the last shot or punch that hit an NPC. Compare count before and after, not npcId."
+    },
+    {
+      "names": [
+        "getChunkHeapStats"
+      ],
+      "doc": "getChunkHeapStats() -> {chunkCount, perChunkArraysMB, l2DedupIndicesMB, evictedL2MB, dedup:{...}} — chunk memory."
+    },
+    {
+      "names": [
+        "getNodeLodCompactionStats"
+      ],
+      "doc": "getNodeLodCompactionStats(reset?) -> {...} — render detail-level rebuild counters."
+    },
+    {
+      "names": [
+        "getCanonicalDedupStats"
+      ],
+      "doc": "getCanonicalDedupStats(sampleSize?) -> {...} — voxel brick symmetry statistics (diagnostic)."
+    },
+    {
+      "names": [
+        "getBoxExtentStats"
+      ],
+      "doc": "getBoxExtentStats(sampleSize?) -> {...} — collision box statistics (diagnostic)."
+    },
+    {
+      "names": [
+        "getBoundaryMergeComparison"
+      ],
+      "doc": "getBoundaryMergeComparison(sampleSize?) -> {...} — collision merge comparison (diagnostic)."
+    },
+    {
+      "names": [
+        "getOctantCollapseStats"
+      ],
+      "doc": "getOctantCollapseStats(sampleSize?) -> {...} — voxel brick statistics (diagnostic)."
+    },
+    {
+      "names": [
+        "getChunkGenBackpressureStats"
+      ],
+      "doc": "getChunkGenBackpressureStats() -> {active, reason, ...} — whether world generation is throttled for memory."
+    },
+    {
+      "names": [
+        "getHeapAttribution"
+      ],
+      "doc": "getHeapAttribution() -> Promise<{mainHeap, cpuBufferMirrorsMB, stagingPoolMB, stagingPool, chunkHeap, gpu, workerWasm, knownExternalMB, residualMB, uaMemory:{totalMB, byType, byScope}}> — memory breakdown."
+    },
+    {
+      "names": [
+        "getShapeDedupStats"
+      ],
+      "doc": "getShapeDedupStats() -> {available, innerShape, mergedBoxes, sharedCache:{...}, crossRealmDuplication:{...}} — collision shape cache."
+    },
+    {
+      "names": [
+        "stressUniqueBricks"
+      ],
+      "doc": "stressUniqueBricks(chunkCount?, bricksPerChunk?, seed?) -> {ok, ...} — stress test: author unique voxel bricks nearby. Heavy; reload to recover."
+    },
+    {
+      "names": [
+        "stressChunkComplexity"
+      ],
+      "doc": "stressChunkComplexity(x, y, z, opts?) -> {ok, ...} — stress test: fill one chunk at maximum complexity. Heavy, one chunk at a time; reload to recover."
+    },
+    {
+      "names": [
+        "stressAppendUniqueBricks"
+      ],
+      "doc": "stressAppendUniqueBricks(chunkCount?, bricksPerChunk?, seed?, doRender?) -> {ok, ...} — stress test: grow the voxel brick table toward capacity. Reload to recover."
+    },
+    {
+      "names": [
+        "probeChunkWedge"
+      ],
+      "doc": "probeChunkWedge(minMs?) -> [{key, step, stepName, dwellMs, tier, sentinel, inLod, brickCount, blockedBy, detail}] — chunks stuck longer than minMs (default 5000), longest first, with what each is waiting on."
+    },
+    {
+      "names": [
+        "getDemotionEvictionStats"
+      ],
+      "doc": "getDemotionEvictionStats() -> {chunksFreed, mbFreed, mbbMarginSkipped, mbbRebuilds, mbbRebuildsQueued, marginRelapseRegens} — marginRelapseRegens should stay 0."
+    },
+    {
+      "names": [
+        "getWorkerLiveness"
+      ],
+      "doc": "getWorkerLiveness() -> {available, workerHeartbeat, workerPhase(Label), pthreadHeartbeat, pthreadPhase(Label)} — physics thread heartbeats."
+    },
+    {
+      "names": [
+        "probePhysicsWedge"
+      ],
+      "doc": "probePhysicsWedge(intervalMs?) -> Promise<{verdict, workerAdvanced, pthreadAdvanced, sample0, sample1}> — whether the physics threads are advancing."
+    },
+    {
+      "names": [
+        "placeVoxelL0",
+        "placeVoxelL1",
+        "removeVoxelL0",
+        "removeVoxelL1",
+        "placeVoxel",
+        "removeVoxel",
+        "paintVoxel"
+      ],
+      "doc": "placeVoxelL0()/placeVoxelL1()/removeVoxelL0()/removeVoxelL1()/placeVoxel()/removeVoxel()/paintVoxel() — deprecated; use editVoxels."
+    },
+    {
+      "names": [
+        "getLastToolEditOutcome"
+      ],
+      "doc": "getLastToolEditOutcome() -> {op, resolutionMeters, applied, reason} | null — what the last edit-tool action did, with the reason if nothing changed."
+    },
+    {
+      "names": [
+        "setEquipment"
+      ],
+      "doc": "setEquipment(name) — None | Projectile | Gun | Edit | Projector | Build | Melee | Deploy. Paint/Add/Remove/Worldgen select Edit with that operation."
+    },
+    {
+      "names": [
+        "setEditOperation",
+        "getEditOperation"
+      ],
+      "doc": "setEditOperation(op) / getEditOperation() — the Edit tool operation: set | add | remove | worldgen."
+    },
+    {
+      "names": [
+        "setEditBrush",
+        "getEditBrush"
+      ],
+      "doc": "setEditBrush({brush?, sizeMeters?, heightMeters?, orientation?, anchor?, snapDeg?, stroke?, level?}) / getEditBrush() — the Edit brush: cell | cube | sphere | cylinder | slab; sizeMeters 0.3..4; heightMeters 0.1..4; orientation gravity | horizontal | surface | grid; anchor surface | centre; snapDeg 0 | 15 | 45; stroke click | drag | line."
+    },
+    {
+      "names": [
+        "brushStroke"
+      ],
+      "doc": "brushStroke(op, [{u, v}, ...], {settleFrames?}) -> Promise<{strokeState, last}> — a drag stroke through screen points; op fill | carve; needs stroke drag."
+    },
+    {
+      "names": [
+        "setEditAimDown"
+      ],
+      "doc": "setEditAimDown(enable) — aim the held tool straight down below the player."
+    },
+    {
+      "names": [
+        "getInputOverrides"
+      ],
+      "doc": "getInputOverrides() -> {latched, aimScreenUV, editAimDown, characterSteerTargetGeo, vehicleIntent, freeCameraIntent, helicopterIntent, planeIntent, heldKeys, heldMouseButtons, pointerLocked, mouseOnCanvas, interactAimTrustworthy} — every active agent input override. Check this first if aim, interact or movement stops responding."
+    },
+    {
+      "names": [
+        "clearInputOverrides"
+      ],
+      "doc": "clearInputOverrides() -> {cleared, before} — release every agent override and held key. Call before handing control back to a person."
+    },
+    {
+      "names": [
+        "setAimScreenUV"
+      ],
+      "doc": "setAimScreenUV(u, v | null) -> [u, v] | null — hold the aim on a screen point (also steers interact); null releases. Works in first person."
+    },
+    {
+      "names": [
+        "getAimScreenUV"
+      ],
+      "doc": "getAimScreenUV() -> [u, v] | null"
+    },
+    {
+      "names": [
+        "setCameraMode",
+        "getCameraMode"
+      ],
+      "doc": "setCameraMode(name) / getCameraMode() — FirstPerson | ThirdPerson on foot or in a vehicle; the FreeRoam variants in free camera."
+    },
+    {
+      "names": [
+        "aimCharacterAtGeo"
+      ],
+      "doc": "aimCharacterAtGeo({lat, lon, elevMeters?}, opts?) -> Promise<{ok, residualDeg, iterations, ...}> — turn the character to aim at a point, so interact() hits it. Character mode."
+    },
+    {
+      "names": [
+        "getCharacterAim"
+      ],
+      "doc": "getCharacterAim(target?) -> {headPitchDeg, totalErrorDeg, pitchErrorDeg, rangeMeters, withinReach} — current aim, optionally its error to a {lat, lon}."
+    },
+    {
+      "names": [
+        "setCharacterHeadPitch"
+      ],
+      "doc": "setCharacterHeadPitch(deg) -> {ok, headPitchDeg} — set the on-foot look pitch."
+    },
+    {
+      "names": [
+        "setPaintSurfaceType"
+      ],
+      "doc": "setPaintSurfaceType(name) — paint | terrain | wall | roof: the material for paint and add edits."
+    },
+    {
+      "names": [
+        "setPaintColor"
+      ],
+      "doc": "setPaintColor(r,g,b) | setPaintColor(\"#rrggbb\") -> {hex, rgb255, uniform} — set the paint colour for this page load."
+    },
+    {
+      "names": [
+        "getPaintColor"
+      ],
+      "doc": "getPaintColor() -> {hex, rgb255, uniform}"
+    },
+    {
+      "names": [
+        "setEditScale"
+      ],
+      "doc": "setEditScale(scale) — chunk (100 m, add only) | l0 (10 m) | l1 (1 m) | l2 (0.1 m)."
+    },
+    {
+      "names": [
+        "getEditTarget"
+      ],
+      "doc": "getEditTarget() -> {hitMeters, normal, nodeIndex} | null — the surface the edit tool is aimed at, or null."
+    },
+    {
+      "names": [
+        "resolveEditTarget"
+      ],
+      "doc": "resolveEditTarget(forAdd?) -> {chunkKey, chunk:[x,y,z], l1:[x,y,z], l2, flatIndex, nodeIndex} | null — which voxel the next edit would change."
+    },
+    {
+      "names": [
+        "probeVoxel"
+      ],
+      "doc": "probeVoxel(cx,cy,cz, l1x,l1y,l1z) -> {found, voxel:{...}, osm:{osmRef, osmId, osmType, name, tags, wayTypeName, tileKey, buildingIndex} | null, l0:{...}, brickIndexInSurfaceList, surfaceVoxelCount, l2SolidBrickCount, saveNeeded} — decode one 1 m voxel and the OSM feature it came from (null for plain terrain)."
+    },
+    {
+      "names": [
+        "osmFeatureAtScreen"
+      ],
+      "doc": "osmFeatureAtScreen(u,v, opts?) -> Promise<{found, osmRef, osmId, osmType, name, tags, wayTypeName, tileKey, buildingIndex, hitDistanceMeters, reason}> — the OSM feature under a screen point. found:false comes with a reason."
+    },
+    {
+      "names": [
+        "getCollection"
+      ],
+      "doc": "getCollection() -> [{key, kind, title, sub, href, addedMs}] — the player's discovery collection, newest first. Saved across reloads; call clearCollection() before counting."
+    },
+    {
+      "names": [
+        "getEquipment"
+      ],
+      "doc": "getEquipment() -> {name, equipment, operation, gun, slot} — what is held; slot -1 means no action-bar slot."
+    },
+    {
+      "names": [
+        "getGuns",
+        "setGun"
+      ],
+      "doc": "getGuns() -> {selected, held, firing, magazine, capacity, catalog:[{type, name, slot, magazineCapacity, damagePerHitFraction, ...}]}   /   setGun(type) -> {ok, gun, previous, refillQueued, held} — choose the gun type; also call setEquipment('Gun') to hold it. The magazine refills on the next frame."
+    },
+    {
+      "names": [
+        "getLastQuestItemImpact"
+      ],
+      "doc": "getLastQuestItemImpact() -> {slot, itemKey, atMs, osmRef, osmId, name, wayTypeName, positionRelative, impactSpeedMps, matched, questId, stepIndex, targetOsmId, targetName} | null — where the last thrown quest item landed and whether it hit a quest target. Poll for it; null can mean not resolved yet."
+    },
+    {
+      "names": [
+        "getThrowableState",
+        "setThrowable"
+      ],
+      "doc": "getThrowableState() -> {key, name, carried, inWorld, inWorldOfKey, freeSlots, throwables, poolSize, canThrow}   /   setThrowable(key) -> {ok, key, carried} — choose which item a throw uses; also call setEquipment('Projectile')."
+    },
+    {
+      "names": [
+        "getSkills",
+        "hasSkill",
+        "grantSkill",
+        "revokeSkill"
+      ],
+      "doc": "getSkills() -> [{key, name, sub, icon, grantedMs}] / hasSkill(key) / grantSkill(key|spec) -> {ok, granted, skills} / revokeSkill(key) -> {ok, skills} — the player's skills."
+    },
+    {
+      "names": [
+        "getActionBar"
+      ],
+      "doc": "getActionBar() -> {slotCount, selected, domSelected, slots:[{index, type, key, label, equipped}]} — the action bar; selected and domSelected should agree."
+    },
+    {
+      "names": [
+        "pressActionBarSlot"
+      ],
+      "doc": "pressActionBarSlot(i) -> {ok, equipment, bar} — press an action-bar slot. An empty slot puts the tool away; pressing a held food slot eats it."
+    },
+    {
+      "names": [
+        "getConsumeState"
+      ],
+      "doc": "getConsumeState() -> {held, heldCount, channel:{key, elapsedMs, durationMs, fraction}|null, notice:{textKey, remainingMs}|null, returnEquipment, msSinceDamage} — eating or drinking in progress. Moving, damage or switching tools cancels it with a refund."
+    },
+    {
+      "names": [
+        "dropCash"
+      ],
+      "doc": "dropCash({cents?, distanceMeters?}) -> {ok, slot, cents} — drop cash in front of the character (default $20); picking it up adds to the wallet."
+    },
+    {
+      "names": [
+        "startConsume"
+      ],
+      "doc": "startConsume(key) -> {ok, queued} — start eating or drinking an item; not allowed during combat or within 3 s of damage."
+    },
+    {
+      "names": [
+        "setActionBarSlot",
+        "moveActionBarSlot"
+      ],
+      "doc": "setActionBarSlot(i, type, key) / moveActionBarSlot(from, to) -> {ok, bar} — assign or move an action-bar slot; type item | skill. Overwrites the target slot."
+    },
+    {
+      "names": [
+        "getWallet",
+        "spendMoney",
+        "setMoney"
+      ],
+      "doc": "getWallet() -> {cents, text} — the player's money. addMoney(cents) / spendMoney(cents) -> {ok, cents, text} / setMoney(cents). Amounts are cents (100 = $1). Saved across reloads; set it before asserting a balance."
+    },
+    {
+      "names": [
+        "getInventory",
+        "takeItem",
+        "hasItem",
+        "clearInventory"
+      ],
+      "doc": "getInventory() -> [{key, name, sub, kind, icon, qty, addedMs}] — carried items, stacked by key. giveItem({key,name,sub,icon,kind,qty}) / takeItem(key, qty) -> {ok, qty, items} / hasItem(key, qty) / clearInventory(). Not saved across reloads."
+    },
+    {
+      "names": [
+        "getHoveredFeature"
+      ],
+      "doc": "getHoveredFeature() -> {osmRef, osmId, osmType, name, tags, wayTypeName, tileKey, buildingIndex, material, distanceMeters, pointRelative, interactable, questObjective, newDiscoveries, label} | null — the feature under the reticle that E would act on. Check interactable. Character mode, within about 10 m."
+    },
+    {
+      "names": [
+        "getGroundFeature"
+      ],
+      "doc": "getGroundFeature(opts?) -> {contactPoints, feature} — the OSM feature the player is standing or driving on; null feature means not known yet."
+    },
+    {
+      "names": [
+        "getFootstepSurface"
+      ],
+      "doc": "getFootstepSurface() -> {ok, surface, voxel} — the surface under the player's feet: default | soft | paved | hollow | water."
+    },
+    {
+      "names": [
+        "getSurfaceGrip"
+      ],
+      "doc": "getSurfaceGrip() -> {table, live[], surfaces[]} — tyre grip per surface, and the surface under each wheel."
+    },
+    {
+      "names": [
+        "setSurfaceGrip"
+      ],
+      "doc": "setSurfaceGrip(name, mu) -> {ok, table} — set the tyre grip for one surface."
+    },
+    {
+      "names": [
+        "getTireSlipAudio"
+      ],
+      "doc": "getTireSlipAudio() -> {surface, matchedRow, row, slip, wheelsOnGround, audible, wheelSurfaces[], table} — the tyre-slip sound state."
+    },
+    {
+      "names": [
+        "waitForEditTarget"
+      ],
+      "doc": "waitForEditTarget(timeoutMs?) -> Promise — resolves when the edit tool is aimed at a surface."
+    },
+    {
+      "names": [
+        "voxelEdit"
+      ],
+      "doc": "voxelEdit(op, opts?) -> Promise<{op, edited, target?, reason?}> — make one edit below the player; sets up the tool and restores it."
+    },
+    {
+      "names": [
+        "rapidVoxelEdit"
+      ],
+      "doc": "rapidVoxelEdit(op, count?, intervalMs?, opts?) -> Promise<{op, fired, withTarget}> — repeat an edit quickly (stress test)."
+    },
+    {
+      "names": [
+        "voxelEditAtScreen"
+      ],
+      "doc": "voxelEditAtScreen(op, u, v, opts?) -> Promise<{op, edited, applied, voxel, before, after, target?, screen, reason?}> — edit at a screen point. Check applied, not edited."
+    },
+    {
+      "names": [
+        "diagnoseBuilding"
+      ],
+      "doc": "diagnoseBuilding(opts?) -> Promise<{query, terrainElevMeters, buildings:[...]}> — building heights against the terrain at a point (diagnostic)."
+    },
+    {
+      "names": [
+        "probePMTilesHosting"
+      ],
+      "doc": "probePMTilesHosting(url?) -> Promise<{url, allPassed, checks:[{check,ok,detail}], header, totalSize}> — check an OSM map archive is reachable."
+    },
+    {
+      "names": [
+        "fetchOSMTile"
+      ],
+      "doc": "fetchOSMTile(z, x, y, opts?) -> Promise<{found, tileId, mvtBytes, layers, osm:{...}}> — fetch and summarize one OSM map tile."
+    },
+    {
+      "names": [
+        "geoToTile"
+      ],
+      "doc": "geoToTile(lat, lon, z=15) -> {z, tileX, tileY, u, v, localX, localY, extent, tileMeters} — map tile and in-tile coordinates for a point."
+    },
+    {
+      "names": [
+        "osmRouteOf"
+      ],
+      "doc": "osmRouteOf(props) -> {bucket, voxelizes} — how a set of OSM tags is classified and whether it becomes voxels."
+    },
+    {
+      "names": [
+        "osmDecodeTile"
+      ],
+      "doc": "osmDecodeTile(z, x, y, opts?) -> Promise<{found, tile, extent, featureCount, matched, features:[{id, type, typeName, tags, route, ringLens, vertexCount, bbox, geometry?}]}> — every feature in one map tile; opts {id, tag, includeGeometry}."
+    },
+    {
+      "names": [
+        "osmFeaturesAt"
+      ],
+      "doc": "osmFeaturesAt(lat, lon, opts?) -> Promise<{tile, local, containing, near}> — the OSM features containing or near a point (opts.nearMeters, default 8)."
+    },
+    {
+      "names": [
+        "osmSnapDoors"
+      ],
+      "doc": "osmSnapDoors(z, x, y) -> {tile, doorCount, buildingCount, snappedCount, unsnappedCount, snapped:[...]} — mapped entrances matched to building walls in a loaded tile."
+    },
+    {
+      "names": [
+        "worldgenDigest"
+      ],
+      "doc": "worldgenDigest() -> {l1, words, nodes, chunksFolded, badMat, l2, l2FlatOnly, entries, boxes, chunksReady, branchPopulation} — a fingerprint of the generated world, for before/after comparison. badMat must be 0."
+    },
+    {
+      "names": [
+        "waitForWorldgenQuiescence"
+      ],
+      "doc": "waitForWorldgenQuiescence({timeoutMs?, stableTicks?, pollMs?}) -> Promise<{settled, chunksReady, entries, chunkMapSize, elapsedMs, ticks}> — wait for world generation to settle before taking a digest."
+    },
+    {
+      "names": [
+        "compareWorldgenDigest"
+      ],
+      "doc": "compareWorldgenDigest(baseline) -> {identical, diff:{field:[was, now]}, got} — compare against an earlier digest. Compare like with like (cold load to cold load)."
+    },
+    {
+      "names": [
+        "osmDoorFallbackStats"
+      ],
+      "doc": "osmDoorFallbackStats() -> {picks, fronted, movedOffLongest, noRoadIndex, noWayInRange, tooFewWalls, frontedPct, movedPct} — how generated doors were placed."
+    },
+    {
+      "names": [
+        "osmSeaAreaLandStats"
+      ],
+      "doc": "osmSeaAreaLandStats() -> {tested, dropped, kept, noDem, timedOut, droppedIds, last} — sea-area polygons dropped as land."
+    },
+    {
+      "names": [
+        "osmPartsTiledStats"
+      ],
+      "doc": "osmPartsTiledStats() -> {outlines, capped, last:{...}} — buildings whose height was taken from their parts."
+    },
+    {
+      "names": [
+        "osmMouthSpanStats"
+      ],
+      "doc": "osmMouthSpanStats() -> {outlines, split, nodesAdded, splitPct, nodesPerSplit} — building outline splitting counters."
+    },
+    {
+      "names": [
+        "getDeviceTuning"
+      ],
+      "doc": "getDeviceTuning() -> {profile, deviceClass, tier, forced, signals:{...}, renderScaleDefault, chunkCount1d, tileLodCount1d, ...} | null — the device profile in use."
+    },
+    {
+      "names": [
+        "getCameraPose"
+      ],
+      "doc": "getCameraPose() -> {lat, lon, elevMeters, bearingDeg, pitchDeg, controlMode} | null — the free camera's position and orientation."
+    },
+    {
+      "names": [
+        "moveFreeCameraTo"
+      ],
+      "doc": "moveFreeCameraTo({lat, lon, elevMeters?, bearingDeg?, pitchDeg?}) -> {ok, pose} | {ok:false, reason} — move the free camera without a reload; follow with waitForChunksReady()."
+    },
+    {
+      "names": [
+        "setCameraPitch"
+      ],
+      "doc": "setCameraPitch(pitchDeg) -> {ok, pose} | {ok:false, reason} — set free-camera pitch (0 level, -90 straight down); in a vehicle or aircraft, same as aimCraftCamera({pitchDeg})."
+    },
+    {
+      "names": [
+        "setCameraBearing"
+      ],
+      "doc": "setCameraBearing(bearingDeg, pitchDeg=0) -> {ok, pose} | getCraftLook() — set the free camera's bearing and pitch; in a vehicle or aircraft, same as aimCraftCamera."
+    },
+    {
+      "names": [
+        "getCraftLook"
+      ],
+      "doc": "getCraftLook() -> {ok, craft, cameraMode, yawDeg, pitchDeg, base:{bearingDeg, pitchDeg}, camera:{bearingDeg, pitchDeg}} | {ok:false, reason} — the vehicle or aircraft camera's look offsets, the direction it looks from, and where it looks now."
+    },
+    {
+      "names": [
+        "setCraftLook"
+      ],
+      "doc": "setCraftLook({yawDeg?, pitchDeg?}) -> getCraftLook() — set the vehicle or aircraft camera's look offsets, as mouse-look does; yaw > 0 turns left, pitch clamps to ±80. Takes effect next frame."
+    },
+    {
+      "names": [
+        "aimCraftCamera"
+      ],
+      "doc": "aimCraftCamera({bearingDeg?, pitchDeg?}) -> getCraftLook() — point the vehicle or aircraft camera at an absolute bearing and pitch. A 'Follow movement' camera eases there and recentres when you drive without looking."
+    },
+    {
+      "names": [
+        "getTurretAim"
+      ],
+      "doc": "getTurretAim() -> {exists, active, gunType, yawDeg, elevDeg, minPitchDeg, minPitchRearDeg, maxPitchDeg} — the turret barrel relative to the chassis; yawDeg > 0 is left, 180 is straight back. The turret aims at the reticle target: without pointer lock call setAimScreenUV(0.5, 0.5) so that is screen centre."
+    },
+    {
+      "names": [
+        "lookAtGeo"
+      ],
+      "doc": "lookAtGeo({lat, lon, elevMeters?}) -> {ok, pose, rangeMeters} | {ok:false, reason} — point the free camera at a location."
+    },
+    {
+      "names": [
+        "viewBuildingFaces"
+      ],
+      "doc": "viewBuildingFaces(lat, lon, opts?) -> Promise<{ok, id, tags, centroid, heightMeters, wallCount, faces:[{lengthMeters, bearingDeg, pose}], topDown}> — camera poses facing each wall of a building, plus a top-down pose."
+    },
+    {
+      "names": [
+        "tileToGeo"
+      ],
+      "doc": "tileToGeo(z, tileX, tileY, localX, localY, extent=4096) -> {lat, lon} — inverse of geoToTile."
+    },
+    {
+      "names": [
+        "osmWayPolyline"
+      ],
+      "doc": "osmWayPolyline(opts) -> Promise<{found, selector, wayCount, points:[{lat,lon}], pointCount, lengthMeters, closed, closureMeters, ringCount, tilesVisited, tilesWithFeature, segmentCount, bbox, note}> — an OSM road or path as one ordered list of points. Requires a selector (opts.id for one way, or opts.tag such as {key:'name', value:'King Street'}) and a starting point (opts.lat/lon or opts.tileX/tileY)."
+    },
+    {
+      "names": [
+        "loopLaps"
+      ],
+      "doc": "loopLaps(points, laps) -> points — repeat a closed route for several laps."
+    },
+    {
+      "names": [
+        "setFreeCameraIntent"
+      ],
+      "doc": "setFreeCameraIntent({forward, strafe, up, speedMps} | null) -> {forward,strafe,up,speedMps} | {cleared:true} | {ok:false, reason} — move the free camera at an exact speed; axes -1..1, strafe > 0 is left; null hands back control."
+    },
+    {
+      "names": [
+        "getLodGridProgress"
+      ],
+      "doc": "getLodGridProgress() -> {total, pending, ready, marginExcluded, readyFraction, deepestPendingStep} — world-build progress around the player; safe to poll."
+    },
+    {
+      "names": [
+        "getFlyThrottleState"
+      ],
+      "doc": "getFlyThrottleState(mode?) -> {mode, gate, readyFraction, chunks, saves, underPressure} — what flyRoute is waiting on (mode chunks | saves | none)."
+    },
+    {
+      "names": [
+        "flyRoute"
+      ],
+      "doc": "flyRoute(opts) -> Promise<{ok, started, pointCount, lengthMeters, speedMps, throttle, aglMeters, lookAheadMeters, laps}> — fly the free camera smoothly along a route, slowing when the world is still building. opts {points | id+seed | tag+seed | bearingDeg+lengthMeters, speedMps=40, aglMeters, pitchDeg, lookAheadMeters, throttle=chunks|saves|none, minSpeedMps, turnRateDegPerSec, climbRateMps, arriveMeters, loop, laps, maxSeconds}; progress on window.__flyRoute."
+    },
+    {
+      "names": [
+        "stopFlyRoute"
+      ],
+      "doc": "stopFlyRoute() -> {stopped, at} — stop flyRoute and hand back the camera."
+    },
+    {
+      "names": [
+        "followRoute"
+      ],
+      "doc": "followRoute(opts) -> Promise<{ok, started, sampleCount, lengthMeters, stepMeters, speedMps, throttle, laps}> — step the free camera along a route, waiting for the world to build; opts {points | id+seed | tag+seed, speedMps=12, stepMeters, eyeMeters=6, pitchDeg=-8, throttle=true, loop, laps}; progress on window.__routeFollow."
+    },
+    {
+      "names": [
+        "stopRouteFollow"
+      ],
+      "doc": "stopRouteFollow() -> {stopped, at} — stop followRoute."
+    },
+    {
+      "names": [
+        "driveVehicleRoute"
+      ],
+      "doc": "driveVehicleRoute(points, opts?) -> Promise<{ok, completed, reason, laps, lapsDone, lapTimes, distanceCoveredMeters, meanSpeedMps, maxSpeedMps, maxCrossTrackMeters, meanAbsHeadingErrDeg, stuckEvents, everPaused, workerErrorsDelta, vehicleType, dynamics:{...}}> — drive the vehicle along a list of points (at least 2), with telemetry. opts {laps=1, lookAheadMeters=14, speedMps=8, steerFullDeg=25, cornerSlowdown=true, arriveMeters=8, offRouteMeters=45, timeoutMs=180000}; progress on window.__vehicleRoute."
+    },
+    {
+      "names": [
+        "getVehiclePose"
+      ],
+      "doc": "getVehiclePose() -> {pos:{lat,lon}, headingDeg} | null — the vehicle body's position and heading."
+    },
+    {
+      "names": [
+        "stopVehicleRoute"
+      ],
+      "doc": "stopVehicleRoute() -> {stopped, at} — stop driveVehicleRoute."
+    },
+    {
+      "names": [
+        "getVehicleWheelProbe"
+      ],
+      "doc": "getVehicleWheelProbe(reset?) -> Promise<{ok, steps, wheels:[{index, radius, contactFraction, hardPointFraction, steepNormalFraction, minNormalFwd, maxAbsNormalFwd, meanAbsNormalFwd, meanSuspensionLength}]}> — wheel contact statistics since the last reset (call with true to reset)."
+    },
+    {
+      "names": [
+        "getVehicleDynamics"
+      ],
+      "doc": "getVehicleDynamics() -> {exists, type, speedMps, leanDeg, wheelSlip, wheelsOnGround, engineRPM, pitchDeg} — current handling state; leanDeg is roll, positive left."
+    },
+    {
+      "names": [
+        "setVehicleType"
+      ],
+      "doc": "setVehicleType(id) -> {ok, requested, active} — choose the vehicle type; a live vehicle is rebuilt in place. Check active === requested."
+    },
+    {
+      "names": [
+        "getVehicleTypes",
+        "getVehicleSpec"
+      ],
+      "doc": "getVehicleTypes() -> [id]   /   getVehicleSpec(id?) -> spec — vehicle catalog ids and a copy of a spec."
+    },
+    {
+      "names": [
+        "auditParkedVehicleRest"
+      ],
+      "doc": "auditParkedVehicleRest(settleMs?) -> Promise<{ok, specId, declaredMeters, measuredMeters, deltaMeters, parkedHeightErrorMeters, perWheelMeters, spreadMeters, contactFractions}> — compare the vehicle's resting suspension to its spec. Run stationary on flat ground."
+    },
+    {
+      "names": [
+        "setVehicleIntentAnalog"
+      ],
+      "doc": "setVehicleIntentAnalog({throttle, steer, handBrake} | null) -> intent — smooth vehicle controls, -1..1 (throttle < 0 brakes); null hands back control."
+    },
+    {
+      "names": [
+        "setSurfacePaintBlend",
+        "getSurfacePaintBlend"
+      ],
+      "doc": "setSurfacePaintBlend(mul) / getSurfacePaintBlend() -> number — strength of map colouring on roads and paths (0 = photo only, 1 = default)."
+    },
+    {
+      "names": [
+        "setVoxelImageryQuantize",
+        "getVoxelImageryQuantize"
+      ],
+      "doc": "setVoxelImageryQuantize(0|1|2) / getVoxelImageryQuantize() -> number — how voxels sample the satellite photo: 0 per pixel, 1 per 1 m cell, 2 per 0.1 m cell (default)."
+    },
+    {
+      "names": [
+        "getInputHint"
+      ],
+      "doc": "getInputHint(controlKey, categoryKey?) -> {device, input, action, fellBack} | null — how to perform a control on the current device (\"press E\", \"tap the lower-left pad\"). Changes with device, mode and pointer lock; do not cache."
+    },
+    {
+      "names": [
+        "getInputGroupHint"
+      ],
+      "doc": "getInputGroupHint([controlKey], categoryKey?) -> same shape — one hint for several controls that share a device input (WASD, the left stick)."
+    },
+    {
+      "names": [
+        "getHintDevice",
+        "auditInputHints"
+      ],
+      "doc": "getHintDevice() -> \"keyboard\"|\"gamepad\"|\"touch\"   /   auditInputHints() -> {device, pointerLocked, gaps[{category, control, boundOn, input}]} — the device hints are written for, and controls with no binding on it."
+    },
+    {
+      "names": [
+        "getQuestState"
+      ],
+      "doc": "getQuestState() -> {activeQuestId, activeTemplateId, activeStepIndex, stepCount, stepText, stepShort, stepVerb, target, skippedSteps, trackedQuestId, discoveryTracked, trackingPinned, active[], completed[], lastCompletion, recentCompletions[], queueDepth} — quest progress. stepShort is the step as a short action (\"Deliver letter to Mills House\"), as the objective marker shows it. completed[] is ids only; results (splits, race time, reward) are in recentCompletions, newest first. active[].id is an instance id; compare templateId."
+    },
+    {
+      "names": [
+        "getQuestCatalog"
+      ],
+      "doc": "getQuestCatalog() -> [{id, name, scope, runtime, steps, applicableSteps}] — quest templates. runtime:true came from defineQuest and is gone after a reload."
+    },
+    {
+      "names": [
+        "defineQuest"
+      ],
+      "doc": "defineQuest({id, name?, scope?, reward?:{cents}, steps:[{verb, selector?, text?, short?, area?, at?, spawnParked?, arrivalMeters?, pin?, grants?, consumes?, physicalDeliveryOnly?, npcOnly?, applicable?}]}) -> {ok, id, name, scope, steps, warnings?} | {ok:false, reason} — register a quest for this session, then startQuest(id). Verbs: moved, looked, reached, drivenTo, taken, interacted, edited, occupied, defeated, pointerLocked, firstPerson. Selectors: none, atGeo (at:{lat, lon, radiusMeters, name?}; radius required), osmArea (area:{bucket?, tag?, value?, id?}), spawnedVehicle (spawnParked:{specId}), nearestVehicle, nearestErrand, nearestPOI, questGiver, anyEdit, tutorialGuide. reached and drivenTo need a selector that names a place. Unknown fields are refused with the list of known ones. {target} in text is replaced with the target's name. Not saved across reloads."
+    },
+    {
+      "names": [
+        "makeScenarioLink"
+      ],
+      "doc": "makeScenarioLink(questSpec|null, {pose?, base?, preload?}) -> {ok, url, chars, questId, warnings?} | {ok:false, reason} — build a link that opens the site at pose ({lat, lon, bear?, ctrl?, elev?, pitch?}, default here) and starts the quest once the player spawns. The spec is checked as defineQuest would check it. The format can be written without this function: <site>/?lat=..&lon=..&bear=..&ctrl=1#scenario=<encodeURIComponent(JSON.stringify({v:1, quest:<spec>, preload?:{radiusMeters, lat?, lon?}}))>, or #scenario=b64.<base64url of the same JSON>. scope must be \"once\"; reward at most 10000 cents. preload (radiusMeters up to 1500, centre within 5 km of the spawn, default the spawn) generates and saves that area after spawn and before the quest starts; the player can cancel it. With preload, quest may be omitted."
+    },
+    {
+      "names": [
+        "readScenarioLink"
+      ],
+      "doc": "readScenarioLink(url) -> {present, ok, quest?, reason?} — decode a link's scenario without starting it."
+    },
+    {
+      "names": [
+        "getScenarioLinkState"
+      ],
+      "doc": "getScenarioLinkState() -> {present, decoded, applied, ok, reason, questId, appliedAtMs, preload, preloadSummary} — what happened to the scenario link this page was opened with (applied:false while waiting for spawn or for its preload; preload is null | pending | running | done | incomplete | cancelled | refused; a refusal is also shown on screen)."
+    },
+    {
+      "names": [
+        "defineRace"
+      ],
+      "doc": "defineRace({id, name?, waypoints:[{lat, lon, name?}], closed?, laps?, radiusMeters?, startRadiusMeters?, finishRadiusMeters?}) -> {ok, id, gates, laps, closed, gatesPerLap, ...} | {ok:false, reason} — a race: drive to the start, through each gate in order, then the finish. Gates only count in a vehicle."
+    },
+    {
+      "names": [],
+      "doc": "defineRace closed loops: closed:true makes waypoints[0] the start/finish line; laps:N runs it N times (laps > 1 needs closed:true and at least one gate besides the line). A repeated last point is dropped."
+    },
+    {
+      "names": [
+        "getQuestState"
+      ],
+      "doc": "getQuestState().active[].{lap, laps, lapsMs} — current lap and lap times on a multi-lap race; null otherwise."
+    },
+    {
+      "names": [
+        "getRaceCourses"
+      ],
+      "doc": "getRaceCourses() -> [{wayId, name, anchorId, lengthMeters, straightMeters, pointCount, pieces, joined, reversals, start, giver, car}] — race circuits found on the map (highway=raceway), each with a marshal who starts a race and a car beside them. A course appears once all of it is loaded."
+    },
+    {
+      "names": [
+        "getQuestState"
+      ],
+      "doc": "getQuestState().lastCompletion -> {id, name, gates, splitsMs[], totalMs, raceMs, lapsMs[], skippedSteps, completedAtMs, rewardCents} | null — the most recent result. For a race use raceMs (start line to finish); totalMs includes time before the start."
+    },
+    {
+      "names": [
+        "isQuestAvailable"
+      ],
+      "doc": "isQuestAvailable(id, giverTag?) -> bool — whether a quest would be offered now."
+    },
+    {
+      "names": [
+        "startQuest"
+      ],
+      "doc": "startQuest(id, giverTag?) -> instanceId | false — start a quest. giverTag (the giver's anchor id) is required for a perGiver quest."
+    },
+    {
+      "names": [
+        "trackQuest"
+      ],
+      "doc": "trackQuest(id|null) -> bool — choose which quest the objective marker follows; null shows discoveries instead."
+    },
+    {
+      "names": [
+        "abandonQuest"
+      ],
+      "doc": "abandonQuest(id?) -> bool — abandon a quest (default: the tracked one), taking back its items and any vehicle it parked. Pays nothing."
+    },
+    {
+      "names": [
+        "getBountyOffer"
+      ],
+      "doc": "getBountyOffer() -> {questId, name, compass, distanceMeters, rewardCents} | null — the bounty job on offer."
+    },
+    {
+      "names": [
+        "getBountyTarget"
+      ],
+      "doc": "getBountyTarget() -> {tag, lat, lon, name, npcId, exists, dead} | null — the running bounty's target. npcId stays null until the target has ground to stand on."
+    },
+    {
+      "names": [],
+      "doc": "Bounty completion: defeat the target (shoot or punch it). killNPC(getBountyTarget().npcId) is a shortcut."
+    },
+    {
+      "names": [
+        "getQuestRandomSeed"
+      ],
+      "doc": "getQuestRandomSeed() -> number — the seed for courier job choices; reload with ?questseed=<seed> to repeat them."
+    },
+    {
+      "names": [
+        "skipQuestStep"
+      ],
+      "doc": "skipQuestStep(id?) -> bool — advance a quest by one step without doing it."
+    },
+    {
+      "names": [
+        "resetQuestProgress"
+      ],
+      "doc": "resetQuestProgress() -> Promise<{cleared:[keys]}> — clear quest completions and restart the tutorial."
+    },
+    {
+      "names": [
+        "emitObjectiveEvent"
+      ],
+      "doc": "emitObjectiveEvent(type, id, detail?) — inject a quest event, for testing."
+    },
+    {
+      "names": [
+        "playCue"
+      ],
+      "doc": "playCue(name) -> {ok, name, audioState} — play a sound cue: collect | accepted | step | complete. Silent until the page has had a user gesture."
+    },
+    {
+      "names": [
+        "getWorkerErrors"
+      ],
+      "doc": "getWorkerErrors() -> [{when, source, message, filename?, lineno?, colno?, stack?, payload?}] — physics worker errors, newest first."
+    },
+    {
+      "names": [
+        "clearWorkerErrors"
+      ],
+      "doc": "clearWorkerErrors()"
+    },
+    {
+      "names": [
+        "getLastWorkerError"
+      ],
+      "doc": "getLastWorkerError() -> {when, source, message, ...} | null"
+    },
+    {
+      "names": [
+        "injectWorkerError"
+      ],
+      "doc": "injectWorkerError(kind?, message?) — kind sync | promise; for testing error capture."
+    },
+    {
+      "names": [],
+      "doc": "agentApiVersion: number"
+    },
+    {
+      "names": [
+        "probeAhead"
+      ],
+      "doc": "probeAhead({distanceMeters?=4, yawOffsetDeg?, tags?}) -> Promise<{ok, blocked, distanceMeters, feature}> — look ahead from the character's head and name what is there. Positive yawOffsetDeg looks right. Treat feature:null as unknown and probe again a frame later."
+    },
+    {
+      "names": [
+        "getDoorForPoint"
+      ],
+      "doc": "getDoorForPoint(lat, lon) -> {found, outdoors?, buildingIndex, source:\"mapped\"|\"fallback\", geo} — the main entrance of the building at a point. found:false with outdoors:true means the point is outside any building."
+    },
+    {
+      "names": [
+        "getBuildingDoors"
+      ],
+      "doc": "getBuildingDoors(lat, lon) -> {found, doors:[{source, edgeIndex, t, geo, distMeters, wallLengthMeters, alongWallMeters?}], nearest, counts, isLarge, bboxLongerMeters, perimeterMeters, eligibleWalls, procedural} — every entrance of the building at a point, nearest first. source mapped | frontage | back | spaced; confirm spaced ones with verifyBuildingDoors."
+    },
+    {
+      "names": [
+        "getNearestDoor"
+      ],
+      "doc": "getNearestDoor(lat, lon, opts?) -> door | null — the closest entrance (opts.searchMeters also searches nearby buildings)."
+    },
+    {
+      "names": [
+        "verifyBuildingDoors"
+      ],
+      "doc": "verifyBuildingDoors(lat, lon, opts?) -> Promise<{ok, predicted, probed, confirmed, missing, counts, rows}> — check each predicted entrance against the built world. The building must be within about 200 m of the player."
+    },
+    {
+      "names": [
+        "walkCharacterToPlace"
+      ],
+      "doc": "walkCharacterToPlace(target, opts?) -> Promise<{reached, reason, legs}> — walk to a point, going through a door first if it is inside a building."
+    },
+    {
+      "names": [
+        "getSurvival",
+        "setSurvival"
+      ],
+      "doc": "getSurvival() / setSurvival({health?, hunger?, hydration?}) -> {health, hunger, hydration} — survival meters, 0..1. setSurvivalDrain({hunger, hydration}) sets drain per second."
+    },
+    {
+      "names": [
+        "setPlayerHealth",
+        "getPlayerHealth"
+      ],
+      "doc": "setPlayerHealth(fraction) / getPlayerHealth() -> {health} — player health, 0..1."
+    },
+    {
+      "names": [
+        "agentApiList"
+      ],
+      "doc": "agentApiList() -> string[] — this list."
+    },
+    {
+      "names": [
+        "list"
+      ],
+      "doc": "api.list(filter?) -> [{name, signature, documented}] — every function on window.debug, sorted by name; filter is a substring or RegExp."
+    }
+  ]
+}

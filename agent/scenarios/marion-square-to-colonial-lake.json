@@ -1,0 +1,44 @@
+{
+  "format": "streetvoxer-scenario",
+  "version": 1,
+  "pose": {
+    "lat": 32.786,
+    "lon": -79.9357,
+    "bear": 210,
+    "ctrl": 1
+  },
+  "preload": {
+    "radiusMeters": 700,
+    "lat": 32.7821,
+    "lon": -79.9384
+  },
+  "quest": {
+    "id": "marion-to-colonial",
+    "name": "Marion Square to Colonial Lake",
+    "reward": {
+      "cents": 1500
+    },
+    "steps": [
+      {
+        "verb": "taken",
+        "selector": "spawnedVehicle",
+        "spawnParked": {
+          "specId": "humvee",
+          "distanceMeters": 8
+        },
+        "text": "Take the {target} on Calhoun Street"
+      },
+      {
+        "verb": "drivenTo",
+        "selector": "atGeo",
+        "at": {
+          "lat": 32.7782,
+          "lon": -79.9411,
+          "radiusMeters": 25,
+          "name": "Colonial Lake"
+        },
+        "text": "Drive to {target} (Rutledge Avenue at Beaufain Street)"
+      }
+    ]
+  }
+}

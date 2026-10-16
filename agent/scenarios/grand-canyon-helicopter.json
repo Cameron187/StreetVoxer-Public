@@ -1,0 +1,85 @@
+{
+  "format": "streetvoxer-scenario",
+  "version": 1,
+  "pose": {
+    "lat": 36.0541,
+    "lon": -112.1231,
+    "bear": 20,
+    "ctrl": 1
+  },
+  "quest": {
+    "id": "draft-grand-canyon-helicopter",
+    "name": "Rim to River",
+    "reward": {
+      "cents": 3000
+    },
+    "steps": [
+      {
+        "verb": "taken",
+        "selector": "spawnedVehicle",
+        "spawnParked": {
+          "specId": "helicopter",
+          "distanceMeters": 20,
+          "offsetBearingDeg": 20,
+          "bearingDeg": 20
+        },
+        "text": "Board the {target} in the car park"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 36.06665,
+          "lon": -112.118225,
+          "radiusMeters": 80,
+          "name": "Yavapai Point"
+        },
+        "text": "Fly out over {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 36.097657,
+          "lon": -112.09555,
+          "radiusMeters": 80,
+          "name": "Bright Angel Suspension Bridge"
+        },
+        "text": "Drop into the canyon to the {target} on the Colorado"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 36.106065,
+          "lon": -112.094694,
+          "radiusMeters": 80,
+          "name": "Phantom Ranch"
+        },
+        "text": "Follow Bright Angel Creek up to {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 36.10094,
+          "lon": -112.089285,
+          "radiusMeters": 80,
+          "name": "Kaibab Suspension Bridge"
+        },
+        "text": "Swing over the {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 36.056732,
+          "lon": -112.140451,
+          "radiusMeters": 80,
+          "name": "Bright Angel Lodge"
+        },
+        "text": "Climb back to the rim at {target}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "format": "streetvoxer-scenario",
+  "version": 1,
+  "pose": {
+    "lat": 40.7980968,
+    "lon": -113.8517746,
+    "bear": 262.1,
+    "ctrl": 1
+  },
+  "quest": {
+    "id": "salt-flats-survey-run",
+    "name": "Salt Flats Survey Run",
+    "reward": {
+      "cents": 2500
+    },
+    "steps": [
+      {
+        "verb": "taken",
+        "selector": "spawnedVehicle",
+        "spawnParked": {
+          "specId": "humvee",
+          "distanceMeters": 10
+        },
+        "text": "Take the {target} parked beside you"
+      },
+      {
+        "verb": "drivenTo",
+        "selector": "atGeo",
+        "at": {
+          "lat": 40.7980968,
+          "lon": -113.8547412,
+          "radiusMeters": 15,
+          "name": "West Stake"
+        },
+        "text": "Drive to the {target}"
+      },
+      {
+        "verb": "drivenTo",
+        "selector": "atGeo",
+        "at": {
+          "lat": 40.7994478,
+          "lon": -113.8577078,
+          "radiusMeters": 15,
+          "name": "Far Stake"
+        },
+        "text": "Swing round the {target}"
+      },
+      {
+        "verb": "drivenTo",
+        "selector": "atGeo",
+        "at": {
+          "lat": 40.801249,
+          "lon": -113.8547412,
+          "radiusMeters": 15,
+          "name": "North Stake"
+        },
+        "text": "Finish at the {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 40.801249,
+          "lon": -113.8542666,
+          "radiusMeters": 4,
+          "name": "Survey Marker"
+        },
+        "text": "Get out and walk to the {target}, 40 m east"
+      },
+      {
+        "verb": "edited",
+        "selector": "anyEdit",
+        "text": "Mark the spot: place a block with the Edit tool"
+      }
+    ]
+  }
+}

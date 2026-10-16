@@ -1,0 +1,63 @@
+{
+  "format": "streetvoxer-scenario",
+  "version": 1,
+  "pose": {
+    "lat": 48.8725,
+    "lon": 2.2987,
+    "bear": 115,
+    "ctrl": 1
+  },
+  "quest": {
+    "id": "draft-paris-motorcycle-seine",
+    "name": "Champs-Élysées to the Eiffel Tower",
+    "reward": {
+      "cents": 2500
+    },
+    "steps": [
+      {
+        "verb": "taken",
+        "selector": "spawnedVehicle",
+        "spawnParked": {
+          "specId": "motorcycle",
+          "distanceMeters": 8,
+          "offsetBearingDeg": 115,
+          "bearingDeg": 115
+        },
+        "text": "Get on the {target}"
+      },
+      {
+        "verb": "drivenTo",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.8656,
+          "lon": 2.32123,
+          "radiusMeters": 30,
+          "name": "Place de la Concorde"
+        },
+        "text": "Ride down the Champs-Élysées to the {target}"
+      },
+      {
+        "verb": "drivenTo",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.86364,
+          "lon": 2.31355,
+          "radiusMeters": 25,
+          "name": "Pont Alexandre III"
+        },
+        "text": "Follow the river to the {target}"
+      },
+      {
+        "verb": "drivenTo",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.85925,
+          "lon": 2.2932,
+          "radiusMeters": 30,
+          "name": "Pont d'Iéna"
+        },
+        "text": "Finish at the {target}, under the Eiffel Tower"
+      }
+    ]
+  }
+}

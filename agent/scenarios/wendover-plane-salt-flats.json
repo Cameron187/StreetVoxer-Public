@@ -1,0 +1,63 @@
+{
+  "format": "streetvoxer-scenario",
+  "version": 1,
+  "pose": {
+    "lat": 40.71896,
+    "lon": -114.0405,
+    "bear": 90,
+    "ctrl": 1
+  },
+  "quest": {
+    "id": "draft-wendover-plane-salt-flats",
+    "name": "Wendover to the Speedway",
+    "reward": {
+      "cents": 3000
+    },
+    "steps": [
+      {
+        "verb": "taken",
+        "selector": "spawnedVehicle",
+        "spawnParked": {
+          "specId": "plane",
+          "distanceMeters": 30,
+          "offsetBearingDeg": 90,
+          "bearingDeg": 90
+        },
+        "text": "Climb into the {target} on the runway"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 40.718966,
+          "lon": -114.0161,
+          "radiusMeters": 150,
+          "name": "far end of the runway"
+        },
+        "text": "Take off east down the runway"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 40.762699,
+          "lon": -113.895752,
+          "radiusMeters": 150,
+          "name": "Bonneville Salt Flats rest area"
+        },
+        "text": "Fly east over the salt to the {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 40.751311,
+          "lon": -113.897497,
+          "radiusMeters": 150,
+          "name": "Bonneville Speedway"
+        },
+        "text": "Make a pass along the {target}"
+      }
+    ]
+  }
+}

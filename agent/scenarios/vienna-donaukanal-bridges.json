@@ -1,0 +1,79 @@
+{
+  "format": "streetvoxer-scenario",
+  "version": 1,
+  "pose": {
+    "lat": 48.21165,
+    "lon": 16.3776,
+    "bear": 330,
+    "ctrl": 1
+  },
+  "quest": {
+    "id": "draft-vienna-donaukanal-bridges",
+    "name": "Two Bridges to the Stephansdom",
+    "reward": {
+      "cents": 2000
+    },
+    "steps": [
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.213,
+          "lon": 16.37722,
+          "radiusMeters": 15,
+          "name": "far end of the Marienbrücke"
+        },
+        "text": "Cross the canal to the {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.21452,
+          "lon": 16.37552,
+          "radiusMeters": 15,
+          "name": "Salztorbrücke"
+        },
+        "text": "Follow the bank upstream to the {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.21412,
+          "lon": 16.37437,
+          "radiusMeters": 15,
+          "name": "old-town end of the Salztorbrücke"
+        },
+        "text": "Cross back to the {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.21199,
+          "lon": 16.3744,
+          "radiusMeters": 20,
+          "name": "Ruprechtskirche"
+        },
+        "text": "Find the {target}, the oldest church in Vienna"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 48.20855,
+          "lon": 16.37225,
+          "radiusMeters": 20,
+          "name": "Stephansdom"
+        },
+        "text": "Walk to the west front of the {target}"
+      },
+      {
+        "verb": "edited",
+        "selector": "anyEdit",
+        "text": "Leave your mark: place a block with the Edit tool"
+      }
+    ]
+  }
+}

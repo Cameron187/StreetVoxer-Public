@@ -1,0 +1,45 @@
+{
+  "format": "streetvoxer-scenario",
+  "version": 1,
+  "pose": {
+    "lat": 32.7701,
+    "lon": -79.929,
+    "bear": 45,
+    "ctrl": 1
+  },
+  "quest": {
+    "id": "draft-charleston-battery-walk",
+    "name": "Battery to the Market",
+    "reward": {
+      "cents": 1500
+    },
+    "steps": [
+      {
+        "verb": "looked",
+        "text": "Look out across the harbour"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 32.778088,
+          "lon": -79.92519,
+          "radiusMeters": 20,
+          "name": "Pineapple Fountain"
+        },
+        "text": "Walk up the Battery to the {target}"
+      },
+      {
+        "verb": "reached",
+        "selector": "atGeo",
+        "at": {
+          "lat": 32.78075,
+          "lon": -79.9314,
+          "radiusMeters": 20,
+          "name": "Market Hall"
+        },
+        "text": "Head inland to {target} on Meeting Street"
+      }
+    ]
+  }
+}
