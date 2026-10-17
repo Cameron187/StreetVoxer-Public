@@ -24,7 +24,7 @@ Common entry points (call `api.list()` for the rest):
 
 ## MCP server
 
-An MCP client can call StreetVoxer as tools, no browser needed: **`https://www.streetvoxer.net/api/mcp`** (Streamable HTTP, stateless, no auth). Tools: `coverage` (does a point have map data), `make_spawn_link` (a URL that opens a place), `make_scenario_link` (a URL that opens a place and starts a quest, checked by the game's own validator) and `read_scenario_link` (what a link does and whether the game accepts it). Every tool returns a link or an answer; nothing runs on the server, and a refused link comes back with the game's reason. Input schemas come from the server's `tools/list`; `/agent-api.json` lists the tools under `mcp`.
+An MCP client can call StreetVoxer as tools, no browser needed: **`https://www.streetvoxer.net/api/mcp`** (Streamable HTTP, stateless, no auth). Tools: `coverage` (does a point have map data), `make_spawn_link` (a URL that opens a place), `make_scenario_link` (a URL that opens a place and starts a quest, checked by the game's own validator) and `read_scenario_link` (what a link does and whether the game accepts it). Every tool returns a link or an answer; nothing runs on the server, and a refused link comes back with the game's reason. Source, to run it locally over stdio: [StreetVoxer-Public](https://github.com/Cameron187/StreetVoxer-Public). Input schemas come from the server's `tools/list`; `/agent-api.json` lists the tools under `mcp`.
 
 ## URL / spawn contract
 
@@ -59,5 +59,6 @@ Within building coverage, density is whatever OSM has: cities are dense, rural a
 ## Links
 
 - [StreetVoxer.net](https://www.streetvoxer.net/): the live site — load it, then use `window.debug` as above.
+- [StreetVoxer-Public on GitHub](https://github.com/Cameron187/StreetVoxer-Public): issues and feedback for the site, the agent kit (manifest, scenario-link codec, example scenarios) and the MCP server source.
 - [Charleston, SC (dense 3D city, best-case imagery, Character mode)](https://www.streetvoxer.net/?lat=32.776&lon=-79.931&ctrl=1): example US spawn — buildings, terrain and ~1 m imagery all at their best.
 - [London (dense 3D city outside the US)](https://www.streetvoxer.net/?lat=51.5074&lon=-0.1278&ctrl=1): example non-US spawn — full buildings and clean terrain, blurred ground imagery.

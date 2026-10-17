@@ -5,6 +5,8 @@
   "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
   "docs": {
     "llms": "https://www.streetvoxer.net/llms.txt",
+    "repository": "https://github.com/Cameron187/StreetVoxer-Public",
+    "issues": "https://github.com/Cameron187/StreetVoxer-Public/issues",
     "urlParameters": "https://www.streetvoxer.net/?lat=<deg>&lon=<deg>&bear=<deg>&ctrl=<0 free camera | 1 character | 2 vehicle>&elev=<m>&pitch=<deg>"
   },
   "mcp": {
