@@ -1,0 +1,35 @@
+name: Agent API or MCP
+description: A problem or request for the in-page API, scenario links or the MCP server.
+labels: ["agent-api"]
+body:
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which part
+      options:
+        - MCP server (hosted /api/mcp)
+        - MCP server (local, mcp/stdio.mjs)
+        - Scenario links
+        - In-page API (window.debug)
+        - agent-api.json or llms.txt
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The call or link, what it returned, and what you expected. Include any refusal reason in full.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: agentApiVersion from agent-api.json or window.debug.api.version, or the MCP server version.
+      placeholder: agentApiVersion 48 / streetvoxer 1.0.0
+  - type: input
+    id: client
+    attributes:
+      label: Agent or client
+      placeholder: Claude Code, Claude in Chrome, a custom MCP client...

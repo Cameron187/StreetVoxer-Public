@@ -1,0 +1,43 @@
+name: Map or building looks wrong
+description: A building, road, water, tree or other map feature is shaped, placed or coloured wrong.
+labels: ["voxelization"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The link in your address bar holds the exact place and view, so it is the best reproduction.
+        If the problem is in the map data itself (a wrong height, a missing tag), fixing it on [openstreetmap.org](https://www.openstreetmap.org/) improves the map for everyone.
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      description: Copy the address bar while looking at the problem.
+      placeholder: https://www.streetvoxer.net/?lat=...&lon=...&bear=...&ctrl=...&elev=...&pitch=...
+    validations:
+      required: true
+  - type: input
+    id: osm
+    attributes:
+      label: OSM element
+      description: The feature on openstreetmap.org, if you know it.
+      placeholder: way/123456, or https://www.openstreetmap.org/way/123456
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong
+      description: What you see, and what it should look like. Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: The version line in the footer.
+      placeholder: v0.5.338 build 20261016.1700
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Chrome 130 on Windows 11, desktop

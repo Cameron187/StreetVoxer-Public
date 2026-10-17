@@ -1,0 +1,17 @@
+name: Feature request
+description: Something you would like the game to do.
+labels: ["feature"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What you would like
+      description: Describe it, and what you would use it for.
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      description: A place where it would matter, if there is one.
+      placeholder: https://www.streetvoxer.net/?lat=...&lon=...

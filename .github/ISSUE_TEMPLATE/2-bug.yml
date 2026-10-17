@@ -1,0 +1,40 @@
+name: Bug
+description: Something in the game does not work, crashes, or behaves wrongly.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what happened, and what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      description: The address bar when it happened, if it is tied to a place.
+      placeholder: https://www.streetvoxer.net/?lat=...&lon=...
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the link
+        2. Get in the car
+        3. ...
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: The version line in the footer.
+      placeholder: v0.5.338 build 20261016.1700
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Chrome 130 on Windows 11, desktop
+    validations:
+      required: true
