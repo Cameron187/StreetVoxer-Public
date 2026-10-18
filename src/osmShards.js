@@ -6,8 +6,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'north-america',
     label: 'North America',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-north-america-2026-09-nb.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-north-america-2026-10.pmtiles',
     rings: [
     [-114.55102,8.24342, -100.89097,5.57228, -92.2249,14.52809, -92.21572,14.54142,
      -92.21375,14.55301, -92.18233,14.57328, -92.16105,14.64637, -92.14465,14.65434,
@@ -38,8 +38,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'central-america',
     label: 'Central America and the Caribbean',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-central-america-2026-09.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-central-america-2026-10.pmtiles',
     rings: [
     [-87.63313,18.20979, -85.49087,18.19755, -86.91815,24.9868, -82.89581,23.95012,
      -79.84425,24.5427, -79.20293,28.05483, -61.12062,24.56797, -44.93667,10.18409,
@@ -76,8 +76,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'south-america',
     label: 'South America',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-south-america-2026-09-nb.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-south-america-2026-10.pmtiles',
     rings: [
     [-82.65565,11.57069, -76.85253,10.28158, -77.49459,8.50508, -77.27113,8.00479,
      -77.52023,7.62736, -77.7327,7.75079, -78.0884,7.03914, -81.76445,4.30503,
@@ -94,8 +94,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'africa',
     label: 'Africa',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-africa-2026-09-nb.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-africa-2026-10.pmtiles',
     rings: [
     [11.60092,33.99875, 12.11791,34.7055, 11.75536,35.38906, 11.50267,36.70367,
      11.60207,37.77817, 3.52599,37.76444, -1.96783,36.32171, -4.28785,36.20082,
@@ -116,8 +116,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'antarctica',
     label: 'Antarctica',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-antarctica-2026-09.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-antarctica-2026-10.pmtiles',
     rings: [
     [-180,-90, 180,-90, 180,-60, -180,-60, -180,-90],
     ],
@@ -126,8 +126,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'australia-oceania',
     label: 'Australia and Oceania',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-australia-oceania-2026-09.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-australia-oceania-2026-10.pmtiles',
     rings: [
     [-107.86328,11.7807, -104.17187,-28.08204, -180,-45.65274, -180,4.08282, -107.86328,11.7807],
     [89.5125,-11.14336, 70.18917,-10.43348, 62.05781,-56.55874, 180,-57.16482, 180,26.27781,
@@ -139,8 +139,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'europe',
     label: 'Europe',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-europe-2026-09.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-europe-2026-10.pmtiles',
     rings: [
     [4.37593,81.38881, -27.37382,64.48458, -32.68323,36.46476, -16.27625,29.63555,
      -15.76411,29.73514, -15.09523,30.03107, -9.6112,35.98587, -5.65333,35.89458,
@@ -175,8 +175,8 @@ export const OSM_SHARDS = Object.freeze([
     id: 'asia',
     label: 'Asia',
 
-    vintage: '2026-09',
-    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-asia-2026-09.pmtiles',
+    vintage: '2026-10',
+    url: OSM_ARCHIVE_BASE + 'streetvoxer-osm-asia-2026-10.pmtiles',
     rings: [
     [-168.25,77.7, -180,77.7, -180,58.1, -168.25,58.1, -168.25,77.7],
     [39.6908,84.52666, 180,84.38487, 180,26.27883, 142.08454,22.06271, 130.147,3.6086,
