@@ -17,6 +17,8 @@ export const QuestVerb = Object.freeze({
   FirstPerson: 'firstPerson',
 
   Defeat:   'defeated',
+
+  Board:    'boarded',
 });
 
 export const Selector = Object.freeze({
@@ -45,6 +47,8 @@ export const Selector = Object.freeze({
   SkirmishFoes:     'skirmishFoes',
 
   TutorialGuide:   'tutorialGuide',
+
+  TaxiFare:        'taxiFare',
 });
 
 export const QuestScope = Object.freeze({
@@ -56,16 +60,17 @@ export const QuestScope = Object.freeze({
   Repeatable: 'repeatable',
 });
 
-export const AUTHORED_QUEST_IDS = Object.freeze(['tutorial', 'mail-run', 'courier-run', 'bounty', 'skirmish']);
+export const AUTHORED_QUEST_IDS = Object.freeze(['tutorial', 'mail-run', 'courier-run', 'bounty', 'skirmish', 'taxi']);
 
-export const PARKABLE_SPEC_IDS = Object.freeze(['humvee', 'motorcycle', 'boat', 'tank', 'helicopter', 'plane']);
+export const PARKABLE_SPEC_IDS = Object.freeze(['humvee', 'motorcycle', 'boat', 'humvee-turret', 'humvee-turret-gl', 'tank',
+  'taxi', 'helicopter', 'plane']);
 
 export const QUEST_SPEC_FIELDS = Object.freeze(['id', 'name', 'scope', 'steps', 'reward', 'giverLines', 'giverLineKeys', 'race']);
 export const QUEST_SPEC_STEP_FIELDS = Object.freeze(['verb', 'selector', 'text', 'textKey', 'short', 'area', 'at', 'spawnParked', 'pin',
   'physicalDeliveryOnly', 'npcOnly', 'arrivalMeters', 'applicable', 'grants', 'consumes']);
 
 export const INTERNAL_SELECTORS = Object.freeze([Selector.OfferedVendor, Selector.OfferedDropoff, Selector.BountyTarget,
-  Selector.SkirmishAllyBase, Selector.SkirmishFoes]);
+  Selector.SkirmishAllyBase, Selector.SkirmishFoes, Selector.TaxiFare]);
 
 export const AUTHORABLE_SELECTORS = Object.freeze(Object.keys(Selector).map(function(k){ return Selector[k]; })
   .filter(function(s){ return INTERNAL_SELECTORS.indexOf(s) < 0; }));

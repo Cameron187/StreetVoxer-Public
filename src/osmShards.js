@@ -307,10 +307,6 @@ const SHARD_BBOX = OSM_SHARDS.map(function(s){
 });
 
 export function primaryOSMShard(){ return OSM_SHARDS[0]; }
-export function osmShardById(id){
-  for(const s of OSM_SHARDS){ if(s.id === id) return s; }
-  return null;
-}
 
 function tileWestLon(x, z){ return x / Math.pow(2, z) * 360 - 180; }
 function tileNorthLat(y, z){

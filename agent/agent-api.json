@@ -1,7 +1,7 @@
 {
   "name": "StreetVoxer agent API",
   "description": "The documented window.debug surface of https://www.streetvoxer.net/. Load the page in a WebGPU browser and call these from page JavaScript; window.debug.api.list() is the live, complete list. Agents with NO browser can still hand a user a game: see scenarioLinks, or call the MCP server (see mcp).",
-  "agentApiVersion": 48,
+  "agentApiVersion": 50,
   "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
   "docs": {
     "llms": "https://www.streetvoxer.net/llms.txt",
@@ -686,18 +686,6 @@
         "probePhysicsWedge"
       ],
       "doc": "probePhysicsWedge(intervalMs?) -> Promise<{verdict, workerAdvanced, pthreadAdvanced, sample0, sample1}> — whether the physics threads are advancing."
-    },
-    {
-      "names": [
-        "placeVoxelL0",
-        "placeVoxelL1",
-        "removeVoxelL0",
-        "removeVoxelL1",
-        "placeVoxel",
-        "removeVoxel",
-        "paintVoxel"
-      ],
-      "doc": "placeVoxelL0()/placeVoxelL1()/removeVoxelL0()/removeVoxelL1()/placeVoxel()/removeVoxel()/paintVoxel() — deprecated; use editVoxels."
     },
     {
       "names": [
