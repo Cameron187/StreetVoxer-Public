@@ -1,7 +1,7 @@
 {
   "name": "StreetVoxer agent API",
   "description": "The documented window.debug surface of https://www.streetvoxer.net/. Load the page in a WebGPU browser and call these from page JavaScript; window.debug.api.list() is the live, complete list. Agents with NO browser can still hand a user a game: see scenarioLinks, or call the MCP server (see mcp).",
-  "agentApiVersion": 50,
+  "agentApiVersion": 55,
   "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
   "docs": {
     "llms": "https://www.streetvoxer.net/llms.txt",
@@ -551,6 +551,18 @@
     },
     {
       "names": [
+        "setColumnEdgeMode"
+      ],
+      "doc": "setColumnEdgeMode(n) -> 1 | 0 — 1 (default): column-tier tiles flatten by integer elevation level and draw only the walls between columns whose levels differ; 0: every column's two facing walls, as before. Live, for an A/B on the same tiles. getColumnEdgeStats() -> {mode, binSteps, binCm, eligibleTiles, tilesWithList, edges, columns, edgesPerColumn}."
+    },
+    {
+      "names": [
+        "probeObstacleProfile"
+      ],
+      "doc": "probeObstacleProfile(dir?) -> Promise<{ok, kind ('clear'|'low'|'overhead'|'wall'), shootOver, duckUnder, bands, vault}> — the NPC obstacle bands + vault test from the player's feet toward dir (default: the camera view). vault = {ok, reason, topMeters, apexMeters, landMeters} for a 'low' obstacle; contactMotion = the player's current contacts' motion types (0 = static), what an NPC's wall test filters on."
+    },
+    {
+      "names": [
         "getNPCStats"
       ],
       "doc": "getNPCStats() -> {total, exists, pending, paused, slotsPerNPC, innerBodyContactsRejected, list:[{id,type,npcClass,dead,tag,exists,paused,health,groundState,position,speedH,speedV,sinkMeters,distanceToPlayerMeters}]} — all NPCs. health is a 0..1 fraction and only changes on hostiles."
@@ -711,13 +723,13 @@
         "setEditBrush",
         "getEditBrush"
       ],
-      "doc": "setEditBrush({brush?, sizeMeters?, heightMeters?, orientation?, anchor?, snapDeg?, stroke?, level?}) / getEditBrush() — the Edit brush: cell | cube | sphere | cylinder | slab; sizeMeters 0.3..4; heightMeters 0.1..4; orientation gravity | horizontal | surface | grid; anchor surface | centre; snapDeg 0 | 15 | 45; stroke click | drag | line."
+      "doc": "setEditBrush({brush?, sizeMeters?, heightMeters?, orientation?, anchor?, snapDeg?, stroke?, level?, bearing?, yawOffsetDeg?}) / getEditBrush() — the Edit brush: cell | cube | sphere | cylinder | slab; sizeMeters 0.3..4 (Set: up to 10, whole metres); heightMeters 0.1..4 (Set: up to 10); orientation gravity | horizontal | surface | grid; anchor surface | centre; snapDeg 0 | 15 | 45; stroke click | drag | line; bearing view | locked | surface; yawOffsetDeg (the R turn). getEditTarget().estimatedNormal is the solid-sampled surface normal."
     },
     {
       "names": [
         "brushStroke"
       ],
-      "doc": "brushStroke(op, [{u, v}, ...], {settleFrames?}) -> Promise<{strokeState, last}> — a drag stroke through screen points; op fill | carve; needs stroke drag."
+      "doc": "brushStroke(op, [{u, v}, ...], {settleFrames?}) -> Promise<{strokeState, last}> — a drag stroke through screen points; op fill | carve | paint (paint: operation Set; a Cell brush is a held Cell Set); needs stroke drag."
     },
     {
       "names": [
