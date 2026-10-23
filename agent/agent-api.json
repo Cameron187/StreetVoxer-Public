@@ -1,7 +1,7 @@
 {
   "name": "StreetVoxer agent API",
   "description": "The documented window.debug surface of https://www.streetvoxer.net/. Load the page in a WebGPU browser and call these from page JavaScript; window.debug.api.list() is the live, complete list. Agents with NO browser can still hand a user a game: see scenarioLinks, or call the MCP server (see mcp).",
-  "agentApiVersion": 55,
+  "agentApiVersion": 56,
   "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
   "docs": {
     "llms": "https://www.streetvoxer.net/llms.txt",
