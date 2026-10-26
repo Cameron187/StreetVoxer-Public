@@ -1,7 +1,7 @@
 {
   "name": "StreetVoxer agent API",
   "description": "The documented window.debug surface of https://www.streetvoxer.net/. Load the page in a WebGPU browser and call these from page JavaScript; window.debug.api.list() is the live, complete list. Agents with NO browser can still hand a user a game: see scenarioLinks, or call the MCP server (see mcp).",
-  "agentApiVersion": 56,
+  "agentApiVersion": 59,
   "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
   "docs": {
     "llms": "https://www.streetvoxer.net/llms.txt",
@@ -243,6 +243,34 @@
         "exitHelicopter"
       ],
       "doc": "exitHelicopter() -> {ok, atAltitudeAglMeters, expectRagdoll, craftAtExit} — get out. In the air this is a bail-out and the character falls."
+    },
+    {
+      "names": [],
+      "doc": "Boarding rule: E boards a vehicle, helicopter, plane or parked machine only within 1.5 m (horizontal) of a seat's own entry door (3 m of the seat for a doorless one such as the boat), and seats you in that door's seat. interact() from the bonnet or 4 m off the side does nothing."
+    },
+    {
+      "names": [
+        "getCraftBoarding"
+      ],
+      "doc": "getCraftBoarding(target?) -> {ok, target, kind, specId, center{lat,lon,elevMeters}, distanceMeters, seats:[{index, id, isDriver, doorless, reachMeters, doors:[{id, lat, lon, elevMeters}]}], current:{seat, door, ok, distMeters, reachMeters}} | {ok:false, reason} — every seat's entry door and which seat E would give right now. target: 'vehicle' | 'helicopter' | 'plane' | a parked machine's anchor id; omitted = the nearest."
+    },
+    {
+      "names": [
+        "boardCraft"
+      ],
+      "doc": "boardCraft({target?, seat=0, walk=true, arriveMeters=0.6, switchSeat=true, timeoutMs=45000}) -> Promise<{ok, reason?, target, kind, seat, seatId, door, boardedSeat, switched, legs, elapsedMs}> — walk round the craft to the seat's door (seat = index or id, e.g. 'rearLeft'), aim, press the real interact, then switch seat if it seated you elsewhere. reason: bad-seat | not-on-foot | walk:<reason> | out-of-reach | no-board | seat-switch."
+    },
+    {
+      "names": [
+        "getSeatState"
+      ],
+      "doc": "getSeatState() -> {craft, index, id, isDriver, seats:[{index, id, isDriver}]} | null — the seat the player is in. selectSeat(indexOrId) -> Promise<{ok, seat, reason?}> — change seat inside the craft (the F1-F4 keys; a passenger in that seat swaps with you)."
+    },
+    {
+      "names": [
+        "exitCraft"
+      ],
+      "doc": "exitCraft() -> Promise<{ok, from, mode, exitDoor, reason?}> — get out of whatever is being piloted (ground vehicle, helicopter or plane) through the occupied seat's doors. Refused while the craft is paused for terrain loading."
     },
     {
       "names": [
@@ -1333,7 +1361,15 @@
       "names": [
         "defineRace"
       ],
-      "doc": "defineRace({id, name?, waypoints:[{lat, lon, name?}], closed?, laps?, radiusMeters?, startRadiusMeters?, finishRadiusMeters?}) -> {ok, id, gates, laps, closed, gatesPerLap, ...} | {ok:false, reason} — a race: drive to the start, through each gate in order, then the finish. Gates only count in a vehicle."
+      "doc": "defineRace({id, name?, waypoints:[{lat, lon, name?, headingDeg?, altitudeMeters?}], closed?, laps?, radiusMeters?, startRadiusMeters?, finishRadiusMeters?, gateHalfWidthMeters?, staging?, craft?, gateHalfHeightMeters?, altitudeRef?}) -> {ok, id, gates, laps, closed, gatesPerLap, staged, craft, ...} | {ok:false, reason} — a race: drive (or fly) to the start, through each gate in order, then the finish. Gates count only from a piloted craft of the race's kind."
+    },
+    {
+      "names": [],
+      "doc": "defineRace gates: gateHalfWidthMeters makes each gate a line crossed forwards within that distance of its centre (heading = waypoint headingDeg, else the course direction); staging:{lengthMeters, halfWidthMeters, maxSpeedMps?, dwellSeconds?} adds a box behind the start line to stop in (default 0.5 m/s for 1.5 s), and the race time starts at the line after it."
+    },
+    {
+      "names": [],
+      "doc": "defineRace air races: craft:'air' | 'any' (default 'ground') lets a helicopter or plane credit the gates (30 m half width by default); a waypoint's altitudeMeters adds a height band ± gateHalfHeightMeters (default 20), above ground (altitudeRef 'agl', default) or sea level ('msl'), judged where the aircraft crosses the line."
     },
     {
       "names": [],

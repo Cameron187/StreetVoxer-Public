@@ -67,7 +67,7 @@ export const PARKABLE_SPEC_IDS = Object.freeze(['humvee', 'motorcycle', 'boat', 
 
 export const QUEST_SPEC_FIELDS = Object.freeze(['id', 'name', 'scope', 'steps', 'reward', 'giverLines', 'giverLineKeys', 'race']);
 export const QUEST_SPEC_STEP_FIELDS = Object.freeze(['verb', 'selector', 'text', 'textKey', 'short', 'area', 'at', 'spawnParked', 'pin',
-  'physicalDeliveryOnly', 'npcOnly', 'arrivalMeters', 'applicable', 'grants', 'consumes']);
+  'physicalDeliveryOnly', 'npcOnly', 'arrivalMeters', 'applicable', 'grants', 'consumes', 'craft']);
 
 export const INTERNAL_SELECTORS = Object.freeze([Selector.OfferedVendor, Selector.OfferedDropoff, Selector.BountyTarget,
   Selector.SkirmishAllyBase, Selector.SkirmishFoes, Selector.TaxiFare]);
@@ -138,6 +138,15 @@ export function validateQuestSpec(spec, opts){
     if(s.spawnParked !== undefined && selector !== Selector.SpawnedVehicle){
       return { ok: false, reason: 'step ' + i + ': `spawnParked` is only read by selector "spawnedVehicle" (this step uses "' + selector + '")' };
     }
+
+    if(s.craft !== undefined){
+      if(s.verb !== QuestVerb.DriveTo){
+        return { ok: false, reason: 'step ' + i + ': `craft` is only read by verb "' + QuestVerb.DriveTo + '"' };
+      }
+      if(s.craft !== 'ground' && s.craft !== 'air' && s.craft !== 'any'){
+        return { ok: false, reason: 'step ' + i + ': craft must be "ground", "air" or "any"' };
+      }
+    }
     if(s.arrivalMeters !== undefined && !(Number.isFinite(s.arrivalMeters) && s.arrivalMeters > 0)){
       return { ok: false, reason: 'step ' + i + ': arrivalMeters must be a number > 0' };
     }
@@ -159,6 +168,29 @@ export function validateQuestSpec(spec, opts){
       if(!(s.at.radiusMeters > 0)){
         return { ok: false, reason: 'step ' + i + ': atGeo `radiusMeters` is required and must be > 0'
                                     };
+      }
+
+      const g = s.at.gate, b = s.at.box;
+      if((g !== undefined || b !== undefined) && s.verb !== QuestVerb.DriveTo){
+        return { ok: false, reason: 'step ' + i + ': atGeo `gate` / `box` are only read by verb "' + QuestVerb.DriveTo + '"' };
+      }
+      if(g !== undefined && b !== undefined){
+        return { ok: false, reason: 'step ' + i + ': atGeo takes a `gate` OR a `box`, not both' };
+      }
+      if(g !== undefined && !(g && Number.isFinite(g.headingDeg) && g.halfWidthMeters > 0)){
+        return { ok: false, reason: 'step ' + i + ': atGeo `gate` must be {headingDeg, halfWidthMeters > 0, altitude?}' };
+      }
+
+      const band = g && g.altitude;
+      if(band !== undefined && !(band && Number.isFinite(band.minMeters) && Number.isFinite(band.maxMeters)
+         && band.maxMeters > band.minMeters && (band.ref === undefined || band.ref === 'agl' || band.ref === 'msl'))){
+        return { ok: false, reason: 'step ' + i + ': atGeo `gate.altitude` must be {minMeters, maxMeters > minMeters, ref?: "agl" | "msl"}' };
+      }
+      if(b !== undefined && !(b && Number.isFinite(b.headingDeg) && b.lengthMeters > 0 && b.halfWidthMeters > 0
+         && (b.maxSpeedMps === undefined || (Number.isFinite(b.maxSpeedMps) && b.maxSpeedMps >= 0))
+         && (b.dwellSeconds === undefined || (Number.isFinite(b.dwellSeconds) && b.dwellSeconds >= 0)))){
+        return { ok: false, reason: 'step ' + i + ': atGeo `box` must be {headingDeg, lengthMeters > 0, halfWidthMeters > 0, '
+                                    + 'maxSpeedMps? >= 0, dwellSeconds? >= 0}' };
       }
     }
 
@@ -189,6 +221,7 @@ export function validateQuestSpec(spec, opts){
     if(s.physicalDeliveryOnly) out.physicalDeliveryOnly = true;
     if(s.npcOnly) out.npcOnly = true;
     if(typeof s.arrivalMeters === 'number') out.arrivalMeters = s.arrivalMeters;
+    if(typeof s.craft === 'string') out.craft = s.craft;
     if(typeof s.applicable === 'function') out.applicable = s.applicable;
 
     if(Array.isArray(s.grants)){
