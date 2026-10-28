@@ -1,7 +1,7 @@
 {
   "name": "StreetVoxer agent API",
   "description": "The documented window.debug surface of https://www.streetvoxer.net/. Load the page in a WebGPU browser and call these from page JavaScript; window.debug.api.list() is the live, complete list. Agents with NO browser can still hand a user a game: see scenarioLinks, or call the MCP server (see mcp).",
-  "agentApiVersion": 59,
+  "agentApiVersion": 65,
   "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
   "docs": {
     "llms": "https://www.streetvoxer.net/llms.txt",
@@ -1422,6 +1422,48 @@
         "getBountyOffer"
       ],
       "doc": "getBountyOffer() -> {questId, name, compass, distanceMeters, rewardCents} | null — the bounty job on offer."
+    },
+    {
+      "names": [
+        "getTerritoryState"
+      ],
+      "doc": "getTerritoryState() -> {active, cell, owner, point:{lat, lon, elevMeters, settled, water, owner, towards, progress, contested, present}, holdSeconds, timing, liveCells, ownedCells, settledPoints, waterCells, hostileSeeded} — territory control: the current z16 cell and its control point A (settled = placed on dry ground and saved; water = the cell has no point; hostileSeeded = the first capture has turned a neighbour hostile, and captures are attacked from the nearest hostile cell). Active while startQuest('territory') runs."
+    },
+    {
+      "names": [
+        "setTerritoryCell"
+      ],
+      "doc": "setTerritoryCell(x, y, owner) -> bool — set a z16 cell's owner ('neutral' | 'ally' | 'hostile'), saved."
+    },
+    {
+      "names": [
+        "resetTerritory"
+      ],
+      "doc": "resetTerritory() -> true — every territory cell back to neutral, and every settled point forgotten."
+    },
+    {
+      "names": [
+        "setTerritoryTiming"
+      ],
+      "doc": "setTerritoryTiming({pointSeconds?, cellSeconds?}) -> {pointSeconds, cellSeconds} — shorten the 15 s point / 120 s cell timers for a test; null restores the default."
+    },
+    {
+      "names": [
+        "getPlayerDeathState"
+      ],
+      "doc": "getPlayerDeathState() -> {dead, sinceMs, health, ragdollActive, controlMode} — while the territory quest runs an empty health bar is a death: down with no recovery, hostiles stand down. abandonQuest stands the player up where they fell."
+    },
+    {
+      "names": [
+        "respawnAtTerritoryCell"
+      ],
+      "doc": "respawnAtTerritoryCell(x, y) -> Promise<{ok, key, lat, lon} | {ok:false, reason}> — respawn at an allied z16 cell's control point, as the character, at full health."
+    },
+    {
+      "names": [
+        "getDeathPrompt"
+      ],
+      "doc": "getDeathPrompt() -> {open, dead, answered, canRespawn} — the You died prompt. answerDeathPrompt('respawn' | 'abandon') -> {ok, answer} | {ok:false, reason} answers it without a click (respawn = the nearest allied cell). deathPick('open' | 'cycle' | 'confirm' | 'back' | 'click', arg?) -> the prompt state with {picking, pickCells, selected} - the respawn pick on the map."
     },
     {
       "names": [

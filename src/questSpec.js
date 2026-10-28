@@ -19,6 +19,8 @@ export const QuestVerb = Object.freeze({
   Defeat:   'defeated',
 
   Board:    'boarded',
+
+  Capture:  'captured',
 });
 
 export const Selector = Object.freeze({
@@ -49,6 +51,8 @@ export const Selector = Object.freeze({
   TutorialGuide:   'tutorialGuide',
 
   TaxiFare:        'taxiFare',
+
+  TerritoryPoint:  'territoryPoint',
 });
 
 export const QuestScope = Object.freeze({
@@ -60,10 +64,10 @@ export const QuestScope = Object.freeze({
   Repeatable: 'repeatable',
 });
 
-export const AUTHORED_QUEST_IDS = Object.freeze(['tutorial', 'mail-run', 'courier-run', 'bounty', 'skirmish', 'taxi']);
+export const AUTHORED_QUEST_IDS = Object.freeze(['tutorial', 'mail-run', 'courier-run', 'bounty', 'skirmish', 'taxi', 'territory']);
 
 export const PARKABLE_SPEC_IDS = Object.freeze(['humvee', 'motorcycle', 'boat', 'humvee-turret', 'humvee-turret-gl', 'tank',
-  'taxi', 'helicopter', 'plane']);
+  'm113', 'taxi', 'helicopter', 'plane']);
 
 export const QUEST_SPEC_FIELDS = Object.freeze(['id', 'name', 'scope', 'steps', 'reward', 'giverLines', 'giverLineKeys', 'race']);
 export const QUEST_SPEC_STEP_FIELDS = Object.freeze(['verb', 'selector', 'text', 'textKey', 'short', 'area', 'at', 'spawnParked', 'pin',
