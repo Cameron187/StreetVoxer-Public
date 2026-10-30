@@ -1,7 +1,7 @@
 {
   "name": "StreetVoxer agent API",
   "description": "The documented window.debug surface of https://www.streetvoxer.net/. Load the page in a WebGPU browser and call these from page JavaScript; window.debug.api.list() is the live, complete list. Agents with NO browser can still hand a user a game: see scenarioLinks, or call the MCP server (see mcp).",
-  "agentApiVersion": 65,
+  "agentApiVersion": 68,
   "generatedBy": "tools/make-agent-manifest.mjs from src/agentApi.js — do not edit by hand",
   "docs": {
     "llms": "https://www.streetvoxer.net/llms.txt",
@@ -617,7 +617,7 @@
       "names": [
         "meleeStrike"
       ],
-      "doc": "meleeStrike() -> {ok, queued} — punch. Reach is 1.6 m and there is a 400 ms cooldown; each hit takes 0.2 of a hostile's health. Confirm with getLastGunHit().count."
+      "doc": "meleeStrike() -> {ok, queued} — punch. Reach is 1.6 m and there is a 400 ms cooldown; each hit takes 0.2 of a hostile's health (x2 head, x0.5 arms and shins). Confirm with getLastGunHit().count."
     },
     {
       "names": [
@@ -627,9 +627,16 @@
     },
     {
       "names": [
-        "getLastGunHit"
+        "getLastGunHit",
+        "limb"
       ],
-      "doc": "getLastGunHit() -> {count, npcId, atMs, sinceMs, pointWorld, npcClass, npcTag, npcDead} | null — the last shot or punch that hit an NPC. Compare count before and after, not npcId."
+      "doc": "getLastGunHit() -> {count, npcId, atMs, sinceMs, pointWorld, bone, boneName, zone, damage, npcClass, npcTag, npcDead} | null — the last shot or punch that hit an NPC. zone is head/core/limb (damage x2/x1/x0.5); damage is what was charged. Compare count before and after, not npcId."
+    },
+    {
+      "names": [
+        "getLastHitOnPlayer"
+      ],
+      "doc": "getLastHitOnPlayer() -> {count, source ('round'|'punch'), atMs, sinceMs, bone, boneName, zone, damage} | null — the last NPC shot or punch that hurt the player."
     },
     {
       "names": [
@@ -1449,9 +1456,15 @@
     },
     {
       "names": [
+        "setGlobalPause"
+      ],
+      "doc": "setGlobalPause(on) -> {ok, paused, changed} — pause or resume the game (the P key): bodies freeze, NPCs, quests and timers stop, rendering and world loading carry on. getGlobalPause() -> {paused}."
+    },
+    {
+      "names": [
         "getPlayerDeathState"
       ],
-      "doc": "getPlayerDeathState() -> {dead, sinceMs, health, ragdollActive, controlMode} — while the territory quest runs an empty health bar is a death: down with no recovery, hostiles stand down. abandonQuest stands the player up where they fell."
+      "doc": "getPlayerDeathState() -> {dead, sinceMs, respawnInMs, health, ragdollActive, controlMode} — while the territory quest runs an empty health bar is a death: down with no recovery, hostiles stand down. Respawn is refused until respawnInMs reaches 0 (the delay NPCs wait too). abandonQuest stands the player up where they fell."
     },
     {
       "names": [

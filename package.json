@@ -12,6 +12,6 @@
     "scenario-link": "node tools/scenario-link.mjs"
   },
   "streetvoxer": {
-    "agentApiVersion": 65
+    "agentApiVersion": 68
   }
 }
