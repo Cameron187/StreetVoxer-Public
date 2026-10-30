@@ -627,10 +627,9 @@
     },
     {
       "names": [
-        "getLastGunHit",
-        "limb"
+        "getLastGunHit"
       ],
-      "doc": "getLastGunHit() -> {count, npcId, atMs, sinceMs, pointWorld, bone, boneName, zone, damage, npcClass, npcTag, npcDead} | null — the last shot or punch that hit an NPC. zone is head/core/limb (damage x2/x1/x0.5); damage is what was charged. Compare count before and after, not npcId."
+      "doc": "getLastGunHit() -> {count, npcId, atMs, sinceMs, pointWorld, bone, boneName, zone, damage, npcClass, npcTag, npcDead} | null — the last shot or punch that hit an NPC. zone is head, core or limb, scaling damage by 2, 1 or 0.5; damage is what was charged. Compare count before and after, not npcId."
     },
     {
       "names": [
