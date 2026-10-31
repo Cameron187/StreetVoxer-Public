@@ -885,7 +885,7 @@
         "getGuns",
         "setGun"
       ],
-      "doc": "getGuns() -> {selected, held, firing, magazine, capacity, catalog:[{type, name, slot, magazineCapacity, damagePerHitFraction, ...}]}   /   setGun(type) -> {ok, gun, previous, refillQueued, held} — choose the gun type; also call setEquipment('Gun') to hold it. The magazine refills on the next frame."
+      "doc": "getGuns() -> {selected, held, firing, magazine, capacity, catalog:[{type, name, slot, magazineCapacity, damagePerHitFraction, ...}]}   /   setGun(type) -> {ok, gun, previous, refillQueued, held} — choose the gun type; also call setEquipment('Gun') to hold it. The magazine refills on the next frame. fireGun fires only a gun in the pack: the player starts with the handgun alone, so add another with giveItem({key: type})."
     },
     {
       "names": [
